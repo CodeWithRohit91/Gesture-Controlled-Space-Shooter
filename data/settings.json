@@ -1,0 +1,7 @@
+{
+  "sensitivity_x": 2.5,
+  "sensitivity_y": 2.0,
+  "min_cutoff": 1.0,
+  "beta": 0.05,
+  "follow_speed": 18.0
+}
