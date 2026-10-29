@@ -127,6 +127,7 @@
       box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
       pointer-events: auto;
       backdrop-filter: blur(6px);
+      transition: border-color 0.2s, color 0.2s;
     }
 
     .meter-container {
@@ -184,9 +185,8 @@
       position: absolute;
       top: calc(75px + var(--sat));
       right: calc(12px + var(--sar));
-      width: clamp(110px, 26vw, 180px);
-      height: clamp(85px, 20vw, 135px);
-      background: rgba(10, 14, 28, 0.92);
+      width: clamp(120px, 26vw, 180px);
+      background: rgba(10, 14, 28, 0.94);
       border: 1.5px solid var(--cyan);
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
@@ -194,16 +194,12 @@
       z-index: 25;
       display: flex;
       flex-direction: column;
-      transition: all 0.3s ease;
+      transition: width 0.2s ease;
     }
 
-    #pip-container.minimized {
-      height: 28px;
-      width: 110px;
-    }
-
-    #pip-container.minimized #pipCanvas {
-      display: none;
+    #pip-container.minimized #pipCanvas,
+    #pip-container.minimized #pip-footer {
+      display: none !important;
     }
 
     #pip-container.hidden {
@@ -222,6 +218,9 @@
       justify-content: space-between;
       padding: 0 6px;
       border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .pip-tool-btn {
@@ -235,9 +234,34 @@
 
     #pipCanvas {
       width: 100%;
-      height: calc(100% - 24px);
+      height: clamp(80px, 18vw, 120px);
       object-fit: cover;
-      transform: scaleX(-1);
+      background: #000000;
+      display: block;
+    }
+
+    #pip-footer {
+      padding: 3px 6px;
+      font-size: 9px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      background: rgba(9, 13, 28, 0.95);
+      border-top: 1px solid rgba(0, 240, 255, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #b8c8e8;
+    }
+
+    .btn-pip-retry {
+      background: #ffe600;
+      color: #060810;
+      border: none;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 9px;
+      font-weight: bold;
+      cursor: pointer;
     }
 
     /* MOBILE ON-SCREEN TOUCH CONTROLS */
@@ -498,6 +522,7 @@
       margin: 14px 0;
       text-align: left;
       font-size: 14px;
+      gap: 12px;
     }
 
     .settings-label {
@@ -521,9 +546,16 @@
       outline: none;
     }
 
-    /* Hidden video element for camera input */
+    /* Active Video Element: Must NOT be display:none so browser decodes frames */
     #webcam-video {
-      display: none;
+      position: fixed;
+      top: -9999px;
+      left: -9999px;
+      width: 320px;
+      height: 240px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -100;
     }
   </style>
 </head>
@@ -608,11 +640,15 @@
     <div id="pip-header">
       <span id="pip-title">CAMERA AI</span>
       <div>
-        <button class="pip-tool-btn" id="btn-camera-flip" title="Switch Front/Back Camera">🔄</button>
+        <button class="pip-tool-btn" id="btn-camera-flip" title="Switch Camera">🔄</button>
         <button class="pip-tool-btn" id="btn-pip-toggle" title="Minimize/Maximize">👁️</button>
       </div>
     </div>
     <canvas id="pipCanvas" width="160" height="120"></canvas>
+    <div id="pip-footer">
+      <span id="pip-status-desc">Show hand</span>
+      <button class="btn-pip-retry" id="btn-camera-retry" style="display:none;">Retry</button>
+    </div>
   </div>
 
   <!-- START MODAL -->
@@ -649,7 +685,7 @@
       </div>
 
       <p style="font-size:11px; color:#788db3; margin-top:14px;">
-        Camera tracking runs 100% locally on your device via MediaPipe AI. Video is never uploaded.
+        Uses the camera of the current device. Camera processing runs 100% locally in your browser. Video is never uploaded.
       </p>
     </div>
   </div>
@@ -675,12 +711,11 @@
 
       <div class="settings-row">
         <div>
-          <div class="settings-label">Active Camera</div>
-          <div class="settings-sublabel">Selfie front or back lens</div>
+          <div class="settings-label">Camera Device</div>
+          <div class="settings-sublabel">Select camera on this device</div>
         </div>
-        <select id="setting-camera-facing">
-          <option value="user">Front Selfie Camera</option>
-          <option value="environment">Rear / Back Camera</option>
+        <select id="setting-camera-device" style="max-width: 190px;">
+          <option value="auto">Auto (Device Default)</option>
         </select>
       </div>
 
@@ -736,14 +771,26 @@
     </div>
   </div>
 
-  <!-- Hidden HTML5 Video for camera capture -->
+  <!-- Active HTML5 Video for camera capture -->
   <video id="webcam-video" playsinline muted autoplay></video>
 </div>
 
 <script>
 /* ==========================================================================
-   GESTURESTRIKE 2.0: MOBILE + DESKTOP ADAPTIVE ENGINE
+   GESTURESTRIKE: DEVICE-AWARE CAMERA & ADAPTIVE GAME ENGINE
    ========================================================================== */
+
+// --- TRACKING STATES ---
+const TrackingState = {
+  CAMERA_PERMISSION_REQUIRED: 'CAMERA_PERMISSION_REQUIRED',
+  REQUESTING_CAMERA: 'REQUESTING_CAMERA',
+  CAMERA_INITIALIZING: 'CAMERA_INITIALIZING',
+  CAMERA_READY: 'CAMERA_READY',
+  SEARCHING_HAND: 'SEARCHING_HAND',
+  HAND_DETECTED: 'HAND_DETECTED',
+  CAMERA_ERROR: 'CAMERA_ERROR',
+  TRACKING_ERROR: 'TRACKING_ERROR'
+};
 
 // --- PROCEDURAL WEB AUDIO SYNTHESIZER ---
 class ProceduralAudio {
@@ -948,7 +995,7 @@ class OneEuroFilter {
   }
 }
 
-// --- MAIN GAME ENGINE (MOBILE + DESKTOP RESPONSIVE) ---
+// --- MAIN GAME ENGINE ---
 class SpaceShooterGame {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -961,7 +1008,7 @@ class SpaceShooterGame {
     this.filterX = new OneEuroFilter(1.0, 0.05);
     this.filterY = new OneEuroFilter(1.0, 0.05);
 
-    // Dynamic Viewport Dimensions
+    // Dimensions & Scaling
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.dpr = Math.min(window.devicePixelRatio || 1, 2.0);
@@ -978,17 +1025,21 @@ class SpaceShooterGame {
 
     // Control Modes: 'gesture', 'touch', 'hybrid', 'keyboard'
     this.controlMode = 'touch';
-    this.cameraFacing = 'user'; // 'user' (selfie) or 'environment' (back)
+    this.cameraFacing = 'user'; // 'user' (selfie/front) or 'environment' (back)
+    this.selectedCameraDeviceId = 'auto';
+    this.activeCameraLabel = 'Webcam';
     this.sensitivity = 2.5;
-    this.graphicsQuality = 'balanced'; // 'high', 'balanced', 'battery'
+    this.graphicsQuality = 'balanced';
 
-    // Vision AI State
+    // Camera Lifecycle & Tracking State
+    this.trackingState = TrackingState.CAMERA_PERMISSION_REQUIRED;
     this.hands = null;
     this.cameraStream = null;
     this.handDetected = false;
     this.lastHandSeen = performance.now();
-    this.gesture = 'IDLE'; // OPEN_PALM, CLOSED_FIST, PINCH, IDLE
+    this.gesture = 'IDLE';
     this.isProcessingFrame = false;
+    this.frameLoopRunning = false;
 
     // Steering targets
     this.targetShipX = this.width / 2;
@@ -1051,11 +1102,12 @@ class SpaceShooterGame {
       document.getElementById('setting-control-mode').value = 'touch';
       document.getElementById('touch-controls-layer').classList.add('active');
       document.getElementById('btn-input-mode').textContent = '📱';
-      document.getElementById('gesture-text').textContent = 'TOUCH ACTIVE';
+      this.setTrackingState(TrackingState.CAMERA_READY, 'Touch Mode Active');
     } else {
       this.controlMode = 'gesture';
       document.getElementById('setting-control-mode').value = 'gesture';
       document.getElementById('btn-input-mode').textContent = '✋';
+      this.setTrackingState(TrackingState.CAMERA_PERMISSION_REQUIRED, 'Ready to Start');
     }
   }
 
@@ -1069,7 +1121,6 @@ class SpaceShooterGame {
       this.canvas.height = Math.floor(this.height * this.dpr);
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
-      // Re-clamp player inside visible boundaries
       this.player.x = Math.max(30, Math.min(this.width - 30, this.player.x));
       this.player.y = Math.max(80, Math.min(this.height - 40, this.player.y));
       this.targetShipX = this.player.x;
@@ -1097,8 +1148,547 @@ class SpaceShooterGame {
     }
   }
 
+  setTrackingState(state, message = '', error = null) {
+    this.trackingState = state;
+    const gText = document.getElementById('gesture-text');
+    const gIcon = document.getElementById('gesture-icon');
+    const pipTitle = document.getElementById('pip-title');
+    const pipDesc = document.getElementById('pip-status-desc');
+    const btnRetry = document.getElementById('btn-camera-retry');
+    const gBadge = document.getElementById('gesture-badge');
+
+    if (btnRetry) btnRetry.style.display = 'none';
+
+    switch (state) {
+      case TrackingState.REQUESTING_CAMERA:
+        if (pipTitle) pipTitle.textContent = 'REQUESTING CAM...';
+        if (pipDesc) pipDesc.textContent = 'Allow camera access in prompt';
+        if (gText) gText.textContent = 'REQUESTING CAM...';
+        if (gIcon) gIcon.textContent = '🔄';
+        break;
+
+      case TrackingState.CAMERA_INITIALIZING:
+        if (pipTitle) pipTitle.textContent = 'INITIALIZING...';
+        if (pipDesc) pipDesc.textContent = 'Starting video feed...';
+        if (gText) gText.textContent = 'STARTING CAM...';
+        if (gIcon) gIcon.textContent = '⏳';
+        break;
+
+      case TrackingState.CAMERA_READY:
+      case TrackingState.SEARCHING_HAND:
+        this.handDetected = false;
+        if (pipTitle) pipTitle.textContent = this.activeCameraLabel ? `CAM: ${this.activeCameraLabel.slice(0, 16)}` : 'CAMERA READY';
+        if (pipDesc) pipDesc.textContent = 'Show hand to camera';
+        if (gText) gText.textContent = 'SHOW HAND';
+        if (gIcon) gIcon.textContent = '✋';
+        if (gBadge) {
+          gBadge.style.borderColor = '#ffe600';
+          gBadge.style.color = '#ffe600';
+        }
+        break;
+
+      case TrackingState.HAND_DETECTED:
+        this.handDetected = true;
+        if (pipTitle) pipTitle.textContent = this.activeCameraLabel ? `CAM: ${this.activeCameraLabel.slice(0, 16)}` : 'AI ACTIVE';
+        if (pipDesc) pipDesc.textContent = message || 'Hand tracked';
+        break;
+
+      case TrackingState.CAMERA_ERROR:
+      case TrackingState.TRACKING_ERROR:
+        this.handDetected = false;
+        if (pipTitle) pipTitle.textContent = 'CAMERA ERROR';
+        if (pipDesc) pipDesc.textContent = message || 'Camera failed';
+        if (gText) gText.textContent = 'CAM ERROR';
+        if (gIcon) gIcon.textContent = '⚠️';
+        if (btnRetry) btnRetry.style.display = 'inline-block';
+        if (gBadge) {
+          gBadge.style.borderColor = '#ff0055';
+          gBadge.style.color = '#ff0055';
+        }
+        break;
+
+      case TrackingState.CAMERA_PERMISSION_REQUIRED:
+        this.handDetected = false;
+        if (pipTitle) pipTitle.textContent = 'CAMERA OFF';
+        if (pipDesc) pipDesc.textContent = message || 'Tap to enable';
+        if (gText) gText.textContent = 'STANDBY';
+        if (gIcon) gIcon.textContent = '✋';
+        break;
+    }
+  }
+
+  // --- DEVICE-AWARE CAMERA STREAM ACQUISITION ---
+  async getBestCameraStream(preferredDeviceId = 'auto') {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Camera API (getUserMedia) not supported in this browser.');
+    }
+
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || 
+                     (('ontouchstart' in window) && window.innerWidth < 1024);
+
+    let stream = null;
+
+    // Tier 1: User explicitly picked a specific camera device ID
+    if (preferredDeviceId && preferredDeviceId !== 'auto') {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: { exact: preferredDeviceId },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
+        });
+        return stream;
+      } catch (err) {
+        console.warn('Selected deviceId failed, attempting automatic camera discovery:', err);
+      }
+    }
+
+    // Tier 2: Automatic Camera Selection based on Current Device Type
+    if (isMobile) {
+      // Mobile Phones: use facingMode (user for selfie, environment for rear)
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: this.cameraFacing },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
+        });
+        return stream;
+      } catch (err) {
+        console.warn('Mobile facingMode request failed, falling back:', err);
+      }
+    } else {
+      // Laptops & Desktops:
+      // DO NOT use { facingMode: { ideal: 'user' } } because Windows Phone Link or
+      // Continuity cameras claim 'user', while the laptop's actual webcam has no facingMode!
+      try {
+        // Enumerate existing video devices first if permissions are already available
+        const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+        // Look for laptop's built-in webcam
+        const builtIn = videoDevices.find(d => {
+          const l = (d.label || '').toLowerCase();
+          const isVirtual = l.includes('phone link') || l.includes('virtual') || l.includes('droidcam') || 
+                            l.includes('camo') || l.includes('epoccam') || l.includes('obs') || l.includes('continuity');
+          const isInternal = l.includes('integrated') || l.includes('wide vision') || l.includes('built-in') || 
+                             l.includes('internal') || l.includes('facetime') || l.includes('webcam') || 
+                             l.includes('camera') || l.includes('hd');
+          return isInternal && !isVirtual;
+        });
+
+        if (builtIn && builtIn.deviceId) {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              deviceId: { exact: builtIn.deviceId },
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            },
+            audio: false
+          });
+          return stream;
+        }
+
+        // Standard desktop request without forcing mobile facingMode
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
+        });
+        return stream;
+      } catch (err) {
+        console.warn('Desktop camera request failed, attempting safe fallback:', err);
+      }
+    }
+
+    // Tier 3: Universal Fallback (Any functioning video device)
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+      return stream;
+    } catch (finalErr) {
+      throw finalErr;
+    }
+  }
+
+  async startCamera() {
+    const pip = document.getElementById('pip-container');
+    pip.classList.remove('hidden');
+
+    this.setTrackingState(TrackingState.REQUESTING_CAMERA);
+
+    // Stop existing camera track if running
+    this.stopCamera();
+
+    try {
+      // 1. Initialize MediaPipe Hands if needed
+      if (!this.hands) {
+        this.hands = new Hands({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        this.hands.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 0,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+        this.hands.onResults((results) => this.onHandResults(results));
+      }
+
+      this.setTrackingState(TrackingState.CAMERA_INITIALIZING);
+
+      // 2. Obtain clean stream for current device
+      const selectedId = document.getElementById('setting-camera-device')?.value || this.selectedCameraDeviceId;
+      this.cameraStream = await this.getBestCameraStream(selectedId);
+
+      // 3. Store active track label
+      const activeTrack = this.cameraStream.getVideoTracks()[0];
+      if (activeTrack) {
+        this.activeCameraLabel = activeTrack.label || 'Webcam';
+        console.log('Camera active on device:', this.activeCameraLabel);
+      }
+
+      // 4. Attach stream to video element
+      this.videoElement.srcObject = this.cameraStream;
+
+      // 5. Await video metadata and readiness
+      await new Promise((resolve, reject) => {
+        let isDone = false;
+        const checkReady = () => {
+          if (isDone) return;
+          if (this.videoElement.videoWidth > 0 && this.videoElement.videoHeight > 0) {
+            isDone = true;
+            this.videoElement.removeEventListener('loadedmetadata', checkReady);
+            this.videoElement.removeEventListener('playing', checkReady);
+            resolve();
+          }
+        };
+
+        this.videoElement.addEventListener('loadedmetadata', checkReady);
+        this.videoElement.addEventListener('playing', checkReady);
+        this.videoElement.play().catch(reject);
+
+        setTimeout(() => {
+          if (!isDone) {
+            isDone = true;
+            resolve();
+          }
+        }, 2200);
+      });
+
+      // 6. Enumerate cameras and update settings dropdown
+      await this.updateAvailableCameras();
+
+      // 7. State ready
+      this.setTrackingState(TrackingState.CAMERA_READY);
+
+      // 8. Start frame processing loop
+      this.startFrameProcessingLoop();
+
+    } catch (err) {
+      console.error('Camera startup error:', err);
+      let errorMsg = 'Could not access camera.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg = 'Permission denied. Please allow camera in browser bar.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMsg = 'No camera found on this device.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMsg = 'Camera is in use by another app (Zoom/Teams).';
+      } else if (err.name === 'OverconstrainedError') {
+        errorMsg = 'Selected camera not available.';
+      } else {
+        errorMsg = err.message || 'Camera error.';
+      }
+
+      this.setTrackingState(TrackingState.CAMERA_ERROR, errorMsg, err);
+    }
+  }
+
+  stopCamera() {
+    this.frameLoopRunning = false;
+    if (this.cameraStream) {
+      this.cameraStream.getTracks().forEach(track => {
+        try { track.stop(); } catch (_) {}
+      });
+      this.cameraStream = null;
+    }
+    if (this.videoElement) {
+      this.videoElement.srcObject = null;
+    }
+    this.isProcessingFrame = false;
+    this.handDetected = false;
+  }
+
+  startFrameProcessingLoop() {
+    if (this.frameLoopRunning) return;
+    this.frameLoopRunning = true;
+
+    const processFrame = async () => {
+      if (!this.frameLoopRunning || !this.cameraStream) return;
+
+      if (!this.paused && !this.isProcessingFrame && 
+          this.videoElement.readyState >= 2 && 
+          this.videoElement.videoWidth > 0) {
+        this.isProcessingFrame = true;
+        try {
+          await this.hands.send({ image: this.videoElement });
+        } catch (inferErr) {
+          console.warn('Inference error:', inferErr);
+        } finally {
+          this.isProcessingFrame = false;
+        }
+      }
+
+      // If hand is not detected yet, ensure live video feed is drawn to PIP canvas
+      if (!this.handDetected && this.videoElement.readyState >= 2 && this.videoElement.videoWidth > 0) {
+        this.pipCtx.clearRect(0, 0, this.pipCanvas.width, this.pipCanvas.height);
+        this.pipCtx.save();
+        if (this.cameraFacing === 'user') {
+          this.pipCtx.translate(this.pipCanvas.width, 0);
+          this.pipCtx.scale(-1, 1);
+        }
+        this.pipCtx.drawImage(this.videoElement, 0, 0, this.pipCanvas.width, this.pipCanvas.height);
+        this.pipCtx.restore();
+      }
+
+      if (this.frameLoopRunning && this.cameraStream) {
+        if ('requestVideoFrameCallback' in this.videoElement) {
+          this.videoElement.requestVideoFrameCallback(processFrame);
+        } else {
+          requestAnimationFrame(processFrame);
+        }
+      }
+    };
+
+    if ('requestVideoFrameCallback' in this.videoElement) {
+      this.videoElement.requestVideoFrameCallback(processFrame);
+    } else {
+      requestAnimationFrame(processFrame);
+    }
+  }
+
+  async updateAvailableCameras() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      const select = document.getElementById('setting-camera-device');
+      if (!select) return;
+
+      select.innerHTML = '';
+      const autoOption = document.createElement('option');
+      autoOption.value = 'auto';
+      autoOption.textContent = 'Auto (Device Default)';
+      select.appendChild(autoOption);
+
+      videoDevices.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `Camera ${index + 1}`;
+        if (this.activeCameraLabel && device.label === this.activeCameraLabel) {
+          option.selected = true;
+        }
+        select.appendChild(option);
+      });
+    } catch (e) {
+      console.warn('Could not enumerate cameras:', e);
+    }
+  }
+
+  async flipCamera() {
+    this.cameraFacing = (this.cameraFacing === 'user') ? 'environment' : 'user';
+    await this.startCamera();
+  }
+
+  setControlMode(mode) {
+    this.controlMode = mode;
+    document.getElementById('setting-control-mode').value = mode;
+
+    const btnMode = document.getElementById('btn-input-mode');
+    const touchLayer = document.getElementById('touch-controls-layer');
+    const pip = document.getElementById('pip-container');
+    const gBadge = document.getElementById('gesture-badge');
+    const gText = document.getElementById('gesture-text');
+    const gIcon = document.getElementById('gesture-icon');
+
+    if (mode === 'gesture') {
+      btnMode.textContent = '✋';
+      touchLayer.classList.remove('active');
+      pip.classList.remove('hidden');
+      gIcon.textContent = '✋';
+      gText.textContent = 'AI GESTURE';
+    } else if (mode === 'touch') {
+      btnMode.textContent = '📱';
+      touchLayer.classList.add('active');
+      pip.classList.add('hidden');
+      this.stopCamera();
+      gIcon.textContent = '📱';
+      gText.textContent = 'TOUCH MODE';
+    } else if (mode === 'hybrid') {
+      btnMode.textContent = '⚡';
+      touchLayer.classList.add('active');
+      pip.classList.remove('hidden');
+      gIcon.textContent = '⚡';
+      gText.textContent = 'HYBRID MODE';
+    } else {
+      btnMode.textContent = '⌨️';
+      touchLayer.classList.remove('active');
+      pip.classList.add('hidden');
+      this.stopCamera();
+      gIcon.textContent = '⌨️';
+      gText.textContent = 'KEYBOARD ACTIVE';
+    }
+  }
+
+  cycleInputMode() {
+    const modes = ['gesture', 'touch', 'hybrid', 'keyboard'];
+    const nextIdx = (modes.indexOf(this.controlMode) + 1) % modes.length;
+    const newMode = modes[nextIdx];
+    this.setControlMode(newMode);
+    if ((newMode === 'gesture' || newMode === 'hybrid') && !this.cameraStream) {
+      this.startCamera();
+    }
+  }
+
+  onHandResults(results) {
+    const ctx = this.pipCtx;
+    ctx.clearRect(0, 0, this.pipCanvas.width, this.pipCanvas.height);
+
+    // Draw camera image
+    if (results.image) {
+      ctx.drawImage(results.image, 0, 0, this.pipCanvas.width, this.pipCanvas.height);
+    } else if (this.videoElement && this.videoElement.readyState >= 2) {
+      ctx.save();
+      if (this.cameraFacing === 'user') {
+        ctx.translate(this.pipCanvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(this.videoElement, 0, 0, this.pipCanvas.width, this.pipCanvas.height);
+      ctx.restore();
+    }
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      this.lastHandSeen = performance.now();
+      const lm = results.multiHandLandmarks[0];
+
+      // Draw skeleton
+      ctx.strokeStyle = '#00f0ff';
+      ctx.fillStyle = '#ffe600';
+      ctx.lineWidth = 1.8;
+
+      const connections = [
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [5,9],[9,10],[10,11],[11,12],
+        [9,13],[13,14],[14,15],[15,16],
+        [13,17],[17,18],[18,19],[19,20],[0,17]
+      ];
+
+      connections.forEach(([i, j]) => {
+        ctx.beginPath();
+        ctx.moveTo(lm[i].x * this.pipCanvas.width, lm[i].y * this.pipCanvas.height);
+        ctx.lineTo(lm[j].x * this.pipCanvas.width, lm[j].y * this.pipCanvas.height);
+        ctx.stroke();
+      });
+
+      lm.forEach((pt) => {
+        ctx.beginPath();
+        ctx.arc(pt.x * this.pipCanvas.width, pt.y * this.pipCanvas.height, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Palm Centroid
+      const palmIndices = [0, 5, 9, 13, 17];
+      let px = 0, py = 0;
+      palmIndices.forEach(idx => {
+        px += lm[idx].x;
+        py += lm[idx].y;
+      });
+      px /= palmIndices.length;
+      py /= palmIndices.length;
+
+      // Biomechanical Scale Normalization
+      const wrist = lm[0];
+      const middleKnuckle = lm[9];
+      const palmScale = Math.max(0.001, Math.hypot(middleKnuckle.x - wrist.x, middleKnuckle.y - wrist.y));
+
+      // Pinch metric
+      const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / palmScale;
+
+      // Finger curl metric
+      const tips = [8, 12, 16, 20];
+      let curlSum = 0;
+      tips.forEach(t => {
+        curlSum += Math.hypot(lm[t].x - wrist.x, lm[t].y - wrist.y) / palmScale;
+      });
+      const avgCurl = curlSum / 4.0;
+
+      // Classify Hand Gesture
+      if (pinchDist < 0.38 && avgCurl > 0.70) {
+        this.gesture = 'PINCH';
+      } else if (avgCurl < 0.90) {
+        this.gesture = 'CLOSED_FIST';
+      } else if (avgCurl >= 1.25) {
+        this.gesture = 'OPEN_PALM';
+      } else {
+        this.gesture = 'IDLE';
+      }
+
+      this.setTrackingState(TrackingState.HAND_DETECTED, this.gesture);
+
+      // Filtering & Coordinate Mapping
+      const now = performance.now();
+      const filteredX = this.filterX.filter(px, now);
+      const filteredY = this.filterY.filter(py, now);
+
+      const targetNormX = Math.max(0, Math.min(1, 0.5 + (filteredX - 0.5) * this.sensitivity));
+      const targetNormY = Math.max(0, Math.min(1, 0.5 + (filteredY - 0.5) * (this.sensitivity * 0.85)));
+
+      if (!this.touchJoystick.active) {
+        this.targetShipX = targetNormX * this.width;
+        this.targetShipY = targetNormY * this.height;
+      }
+
+      // Update HUD badge
+      const badge = document.getElementById('gesture-badge');
+      const gText = document.getElementById('gesture-text');
+      const gIcon = document.getElementById('gesture-icon');
+
+      if (this.gesture === 'OPEN_PALM') {
+        gText.textContent = 'OPEN PALM (FIRE)';
+        gIcon.textContent = '✋';
+        badge.style.borderColor = '#00f0ff';
+        badge.style.color = '#00f0ff';
+      } else if (this.gesture === 'CLOSED_FIST') {
+        gText.textContent = 'CLOSED FIST (SHIELD)';
+        gIcon.textContent = '✊';
+        badge.style.borderColor = '#00ff88';
+        badge.style.color = '#00ff88';
+      } else if (this.gesture === 'PINCH') {
+        gText.textContent = 'PINCH (EMP BOMB)';
+        gIcon.textContent = '🤏';
+        badge.style.borderColor = '#ffe600';
+        badge.style.color = '#ffe600';
+      } else {
+        gText.textContent = 'IDLE (STEER)';
+        gIcon.textContent = '👆';
+        badge.style.borderColor = '#8a9fc4';
+        badge.style.color = '#8a9fc4';
+      }
+    } else {
+      this.setTrackingState(TrackingState.SEARCHING_HAND);
+    }
+  }
+
   bindEvents() {
-    // Keyboard inputs
     window.addEventListener('keydown', (e) => {
       this.keys[e.key.toLowerCase()] = true;
       if (e.key.toLowerCase() === 'm') this.toggleAudio();
@@ -1132,7 +1722,7 @@ class SpaceShooterGame {
 
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    // --- MOBILE TOUCH CONTROLS (VIRTUAL JOYSTICK & BUTTONS) ---
+    // --- TOUCH CONTROLLER ---
     const joyZone = document.getElementById('joystick-zone');
     const joyBase = document.getElementById('joystick-base');
     const joyThumb = document.getElementById('joystick-thumb');
@@ -1199,7 +1789,7 @@ class SpaceShooterGame {
     window.addEventListener('touchend', endJoystick);
     window.addEventListener('touchcancel', endJoystick);
 
-    // Touch Action Buttons
+    // Touch Buttons
     const btnFire = document.getElementById('btn-touch-fire');
     const btnShield = document.getElementById('btn-touch-shield');
     const btnBomb = document.getElementById('btn-touch-bomb');
@@ -1240,7 +1830,7 @@ class SpaceShooterGame {
     }, { passive: false });
     btnBomb.addEventListener('touchend', () => btnBomb.classList.remove('pressed'));
 
-    // Top & Quick Control UI Buttons
+    // UI Buttons
     document.getElementById('btn-start-camera').onclick = () => this.startMission('gesture');
     document.getElementById('btn-start-touch').onclick = () => this.startMission('touch');
     document.getElementById('btn-start-keyboard').onclick = () => this.startMission('keyboard');
@@ -1267,12 +1857,15 @@ class SpaceShooterGame {
     document.getElementById('btn-pip-toggle').onclick = () => {
       document.getElementById('pip-container').classList.toggle('minimized');
     };
+    document.getElementById('btn-camera-retry').onclick = () => this.startCamera();
 
     // Settings Inputs
     document.getElementById('setting-control-mode').onchange = (e) => this.setControlMode(e.target.value);
-    document.getElementById('setting-camera-facing').onchange = (e) => {
-      this.cameraFacing = e.target.value;
-      if (this.cameraStream) this.startCamera();
+    document.getElementById('setting-camera-device').onchange = (e) => {
+      this.selectedCameraDeviceId = e.target.value;
+      if (this.controlMode === 'gesture' || this.controlMode === 'hybrid') {
+        this.startCamera();
+      }
     };
     document.getElementById('setting-sensitivity').oninput = (e) => {
       this.sensitivity = parseFloat(e.target.value);
@@ -1283,7 +1876,6 @@ class SpaceShooterGame {
       this.initStars();
     };
 
-    // Tab visibility handling (battery saver & pause)
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && this.running && !this.paused) {
         this.togglePause();
@@ -1302,286 +1894,9 @@ class SpaceShooterGame {
     this.startGameLoop();
   }
 
-  async startCamera() {
-    const pip = document.getElementById('pip-container');
-    pip.classList.remove('hidden');
-    document.getElementById('pip-title').textContent = 'INITIALIZING...';
-
-    // Stop existing camera track if running
-    if (this.cameraStream) {
-      this.cameraStream.getTracks().forEach(t => t.stop());
-      this.cameraStream = null;
-    }
-
-    try {
-      if (!this.hands) {
-        this.hands = new Hands({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-        this.hands.setOptions({
-          maxNumHands: 1,
-          modelComplexity: 0,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5
-        });
-        this.hands.onResults((results) => this.onHandResults(results));
-      }
-
-      // Request device camera (front or back)
-      const constraints = {
-        video: {
-          facingMode: { ideal: this.cameraFacing },
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        },
-        audio: false
-      };
-
-      this.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.videoElement.srcObject = this.cameraStream;
-      await this.videoElement.play();
-
-      document.getElementById('pip-title').textContent = 'AI ACTIVE';
-      this.processVideoFrames();
-    } catch (err) {
-      console.warn('Camera failed to start:', err);
-      alert('Camera access denied or unavailable on this device. Switching to Touch / Keyboard controls.');
-      pip.classList.add('hidden');
-      this.setControlMode('touch');
-    }
-  }
-
-  processVideoFrames() {
-    if (!this.cameraStream || !this.videoElement) return;
-
-    const frameCallback = async () => {
-      if (!this.cameraStream) return;
-      if (!this.paused && !this.isProcessingFrame && this.videoElement.readyState >= 2) {
-        this.isProcessingFrame = true;
-        try {
-          await this.hands.send({ image: this.videoElement });
-        } catch (_) {}
-        this.isProcessingFrame = false;
-      }
-      if ('requestVideoFrameCallback' in this.videoElement) {
-        this.videoElement.requestVideoFrameCallback(frameCallback);
-      } else {
-        requestAnimationFrame(frameCallback);
-      }
-    };
-
-    if ('requestVideoFrameCallback' in this.videoElement) {
-      this.videoElement.requestVideoFrameCallback(frameCallback);
-    } else {
-      requestAnimationFrame(frameCallback);
-    }
-  }
-
-  async flipCamera() {
-    this.cameraFacing = (this.cameraFacing === 'user') ? 'environment' : 'user';
-    document.getElementById('setting-camera-facing').value = this.cameraFacing;
-    await this.startCamera();
-  }
-
-  setControlMode(mode) {
-    this.controlMode = mode;
-    document.getElementById('setting-control-mode').value = mode;
-
-    const btnMode = document.getElementById('btn-input-mode');
-    const touchLayer = document.getElementById('touch-controls-layer');
-    const pip = document.getElementById('pip-container');
-    const gBadge = document.getElementById('gesture-badge');
-    const gText = document.getElementById('gesture-text');
-    const gIcon = document.getElementById('gesture-icon');
-
-    if (mode === 'gesture') {
-      btnMode.textContent = '✋';
-      touchLayer.classList.remove('active');
-      pip.classList.remove('hidden');
-      gIcon.textContent = '✋';
-      gText.textContent = 'AI GESTURE';
-    } else if (mode === 'touch') {
-      btnMode.textContent = '📱';
-      touchLayer.classList.add('active');
-      pip.classList.add('hidden');
-      gIcon.textContent = '📱';
-      gText.textContent = 'TOUCH MODE';
-    } else if (mode === 'hybrid') {
-      btnMode.textContent = '⚡';
-      touchLayer.classList.add('active');
-      pip.classList.remove('hidden');
-      gIcon.textContent = '⚡';
-      gText.textContent = 'HYBRID MODE';
-    } else {
-      btnMode.textContent = '⌨️';
-      touchLayer.classList.remove('active');
-      pip.classList.add('hidden');
-      gIcon.textContent = '⌨️';
-      gText.textContent = 'KEYBOARD ACTIVE';
-    }
-  }
-
-  cycleInputMode() {
-    const modes = ['gesture', 'touch', 'hybrid', 'keyboard'];
-    const nextIdx = (modes.indexOf(this.controlMode) + 1) % modes.length;
-    const newMode = modes[nextIdx];
-    this.setControlMode(newMode);
-    if ((newMode === 'gesture' || newMode === 'hybrid') && !this.cameraStream) {
-      this.startCamera();
-    }
-  }
-
-  onHandResults(results) {
-    const ctx = this.pipCtx;
-    ctx.clearRect(0, 0, this.pipCanvas.width, this.pipCanvas.height);
-
-    if (results.image) {
-      ctx.drawImage(results.image, 0, 0, this.pipCanvas.width, this.pipCanvas.height);
-    }
-
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-      this.handDetected = true;
-      this.lastHandSeen = performance.now();
-      const lm = results.multiHandLandmarks[0];
-
-      // Draw skeleton on PIP
-      ctx.strokeStyle = '#00f0ff';
-      ctx.fillStyle = '#ffe600';
-      ctx.lineWidth = 1.8;
-
-      const connections = [
-        [0,1],[1,2],[2,3],[3,4],
-        [0,5],[5,6],[6,7],[7,8],
-        [5,9],[9,10],[10,11],[11,12],
-        [9,13],[13,14],[14,15],[15,16],
-        [13,17],[17,18],[18,19],[19,20],[0,17]
-      ];
-
-      connections.forEach(([i, j]) => {
-        ctx.beginPath();
-        ctx.moveTo(lm[i].x * this.pipCanvas.width, lm[i].y * this.pipCanvas.height);
-        ctx.lineTo(lm[j].x * this.pipCanvas.width, lm[j].y * this.pipCanvas.height);
-        ctx.stroke();
-      });
-
-      lm.forEach((pt) => {
-        ctx.beginPath();
-        ctx.arc(pt.x * this.pipCanvas.width, pt.y * this.pipCanvas.height, 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Palm Centroid
-      const palmIndices = [0, 5, 9, 13, 17];
-      let px = 0, py = 0;
-      palmIndices.forEach(idx => {
-        px += lm[idx].x;
-        py += lm[idx].y;
-      });
-      px /= palmIndices.length;
-      py /= palmIndices.length;
-
-      // Mirror horizontally for selfie front camera
-      if (this.cameraFacing === 'user') {
-        px = 1.0 - px;
-      }
-
-      // Biomechanical Scale Normalization
-      const wrist = lm[0];
-      const middleKnuckle = lm[9];
-      const palmScale = Math.max(0.001, Math.hypot(middleKnuckle.x - wrist.x, middleKnuckle.y - wrist.y));
-
-      // Pinch metric
-      const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / palmScale;
-
-      // Finger curl metric
-      const tips = [8, 12, 16, 20];
-      let curlSum = 0;
-      tips.forEach(t => {
-        curlSum += Math.hypot(lm[t].x - wrist.x, lm[t].y - wrist.y) / palmScale;
-      });
-      const avgCurl = curlSum / 4.0;
-
-      // Classify Hand Gesture
-      if (pinchDist < 0.38 && avgCurl > 0.70) {
-        this.gesture = 'PINCH';
-      } else if (avgCurl < 0.90) {
-        this.gesture = 'CLOSED_FIST';
-      } else if (avgCurl >= 1.25) {
-        this.gesture = 'OPEN_PALM';
-      } else {
-        this.gesture = 'IDLE';
-      }
-
-      // One Euro Filter + Dynamic Sensitivity Active Zone
-      const now = performance.now();
-      const filteredX = this.filterX.filter(px, now);
-      const filteredY = this.filterY.filter(py, now);
-
-      const targetNormX = Math.max(0, Math.min(1, 0.5 + (filteredX - 0.5) * this.sensitivity));
-      const targetNormY = Math.max(0, Math.min(1, 0.5 + (filteredY - 0.5) * (this.sensitivity * 0.85)));
-
-      // If not currently using touch joystick, hand steers ship
-      if (!this.touchJoystick.active) {
-        this.targetShipX = targetNormX * this.width;
-        this.targetShipY = targetNormY * this.height;
-      }
-
-      // Update HUD badge
-      const badge = document.getElementById('gesture-badge');
-      const gText = document.getElementById('gesture-text');
-      const gIcon = document.getElementById('gesture-icon');
-
-      if (this.gesture === 'OPEN_PALM') {
-        gText.textContent = 'OPEN PALM (FIRE)';
-        gIcon.textContent = '✋';
-        badge.style.borderColor = '#00f0ff';
-        badge.style.color = '#00f0ff';
-      } else if (this.gesture === 'CLOSED_FIST') {
-        gText.textContent = 'CLOSED FIST (SHIELD)';
-        gIcon.textContent = '✊';
-        badge.style.borderColor = '#00ff88';
-        badge.style.color = '#00ff88';
-      } else if (this.gesture === 'PINCH') {
-        gText.textContent = 'PINCH (EMP BOMB)';
-        gIcon.textContent = '🤏';
-        badge.style.borderColor = '#ffe600';
-        badge.style.color = '#ffe600';
-      } else {
-        gText.textContent = 'IDLE (STEER)';
-        gIcon.textContent = '👆';
-        badge.style.borderColor = '#8a9fc4';
-        badge.style.color = '#8a9fc4';
-      }
-    } else {
-      this.handDetected = false;
-      document.getElementById('pip-title').textContent = 'SEARCHING HAND';
-    }
-  }
-
-  startGameLoop() {
-    this.running = true;
-    this.paused = false;
-    this.score = 0;
-    this.wave = 1;
-    this.lives = 3;
-    this.bombs = 3;
-    this.bullets = [];
-    this.enemyBullets = [];
-    this.enemies = [];
-    this.boss = null;
-    this.powerups = [];
-    this.particles = [];
-    this.spawnWaveEnemies();
-    requestAnimationFrame((t) => this.gameLoop(t));
-  }
-
-  toggleAudio() {
-    const isMuted = this.audio.toggleMute();
-    document.getElementById('btn-audio').textContent = isMuted ? '🔇' : '🔊';
-  }
-
   openSettings() {
     this.paused = true;
+    this.updateAvailableCameras();
     document.getElementById('settings-modal').style.display = 'flex';
   }
 
@@ -1700,7 +2015,7 @@ class SpaceShooterGame {
   }
 
   update(dt) {
-    // 1. Touch Joystick Movement (if active)
+    // 1. Touch Joystick Movement
     if (this.touchJoystick.active) {
       const joySpeed = 520 * dt;
       this.targetShipX += this.touchJoystick.dx * joySpeed;
@@ -1722,7 +2037,7 @@ class SpaceShooterGame {
     const isKeyShield = !!this.keys['s'];
     this.player.shieldActive = (isGestureShield || isTouchShield || isKeyShield);
 
-    // Shield Energy Depletion & Regeneration
+    // Shield Energy
     if (this.player.shieldActive && this.player.shieldEnergy > 0) {
       this.player.shieldEnergy = Math.max(0, this.player.shieldEnergy - 34 * dt);
       if (this.player.shieldEnergy === 0) this.player.shieldActive = false;
@@ -1730,7 +2045,7 @@ class SpaceShooterGame {
       this.player.shieldEnergy = Math.min(this.player.shieldMax, this.player.shieldEnergy + 16 * dt);
     }
 
-    // Clamp Ship Target
+    // Boundaries Clamp
     this.targetShipX = Math.max(26, Math.min(this.width - 26, this.targetShipX));
     this.targetShipY = Math.max(70, Math.min(this.height - 35, this.targetShipY));
 
@@ -1744,7 +2059,7 @@ class SpaceShooterGame {
     if (this.player.rapidFireTimer > 0) this.player.rapidFireTimer -= dt;
     if (this.player.invulnerableTimer > 0) this.player.invulnerableTimer -= dt;
 
-    // Firing Logic (Gesture OPEN_PALM, Touch FIRE button, or Space key)
+    // Firing Logic
     this.player.fireCooldown -= dt;
     const isFiring = (
       ((this.controlMode === 'gesture' || this.controlMode === 'hybrid') && this.gesture === 'OPEN_PALM') ||
