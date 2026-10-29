@@ -581,8 +581,11 @@
         <span id="gesture-icon">✋</span>
         <span id="gesture-text">STANDBY</span>
       </div>
-      <div style="font-family:'Orbitron', monospace; font-size:clamp(10px, 2.5vw, 12px); color:var(--yellow); font-weight:700;" id="wave-display">
-        WAVE 01
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span id="game-status-badge" style="font-family:'Orbitron', monospace; font-size:clamp(9px, 2.2vw, 11px); font-weight:700; padding:2px 8px; border-radius:10px; background:rgba(0, 240, 255, 0.2); border:1px solid var(--cyan); color:var(--cyan); letter-spacing:1px;">READY</span>
+        <span style="font-family:'Orbitron', monospace; font-size:clamp(10px, 2.5vw, 12px); color:var(--yellow); font-weight:700;" id="wave-display">
+          WAVE 01
+        </span>
       </div>
     </div>
 
@@ -1014,14 +1017,17 @@ class SpaceShooterGame {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2.0);
 
     // Game state
+    this.gameState = 'READY'; // 'READY', 'PLAYING', 'PAUSED', 'GAME OVER'
     this.running = false;
     this.paused = false;
+    this.animationLoopRunning = false;
     this.score = 0;
     this.wave = 1;
     this.lives = 3;
     this.bombs = 3;
     this.combo = 1.0;
     this.comboTimer = 0;
+    this.mouseDown = false;
 
     // Control Modes: 'gesture', 'touch', 'hybrid', 'keyboard'
     this.controlMode = 'touch';
@@ -1091,6 +1097,9 @@ class SpaceShooterGame {
     this.initStars();
     this.bindEvents();
     this.lastFrameTime = performance.now();
+    this.updateHUD();
+    this.setGameStatus('READY');
+    this.startAnimationLoop();
   }
 
   detectDeviceDefaults() {
@@ -1121,12 +1130,14 @@ class SpaceShooterGame {
       this.canvas.height = Math.floor(this.height * this.dpr);
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
-      this.player.x = Math.max(30, Math.min(this.width - 30, this.player.x));
-      this.player.y = Math.max(80, Math.min(this.height - 40, this.player.y));
+      this.player.x = Math.max(30, Math.min(this.width - 30, this.player.x || (this.width / 2)));
+      this.player.y = Math.max(80, Math.min(this.height - 40, this.player.y || (this.height * 0.82)));
       this.targetShipX = this.player.x;
       this.targetShipY = this.player.y;
 
-      this.initStars();
+      if (!this.stars || this.stars.length === 0) {
+        this.initStars();
+      }
     };
 
     window.addEventListener('resize', resizeHandler);
@@ -1214,6 +1225,30 @@ class SpaceShooterGame {
         if (gText) gText.textContent = 'STANDBY';
         if (gIcon) gIcon.textContent = '✋';
         break;
+    }
+  }
+
+  setGameStatus(status) {
+    this.gameState = status; // 'READY', 'PLAYING', 'PAUSED', 'GAME OVER'
+    const badge = document.getElementById('game-status-badge');
+    if (!badge) return;
+    badge.textContent = status;
+    if (status === 'PLAYING') {
+      badge.style.borderColor = 'var(--green)';
+      badge.style.color = 'var(--green)';
+      badge.style.background = 'rgba(0, 255, 136, 0.18)';
+    } else if (status === 'PAUSED') {
+      badge.style.borderColor = 'var(--yellow)';
+      badge.style.color = 'var(--yellow)';
+      badge.style.background = 'rgba(255, 230, 0, 0.18)';
+    } else if (status === 'GAME OVER') {
+      badge.style.borderColor = 'var(--magenta)';
+      badge.style.color = 'var(--magenta)';
+      badge.style.background = 'rgba(255, 0, 85, 0.22)';
+    } else {
+      badge.style.borderColor = 'var(--cyan)';
+      badge.style.color = 'var(--cyan)';
+      badge.style.background = 'rgba(0, 240, 255, 0.18)';
     }
   }
 
@@ -1695,28 +1730,41 @@ class SpaceShooterGame {
       if (e.key.toLowerCase() === 'k') this.cycleInputMode();
       if (e.key.toLowerCase() === 'p' || e.key === 'Escape') this.togglePause();
       if (e.key.toLowerCase() === 'b' && this.running && !this.paused) this.triggerEmp();
+
+      // Quick start on Enter or Space when on start screen
+      if (!this.running && (e.key === 'Enter' || e.key === ' ')) {
+        const startModal = document.getElementById('start-modal');
+        if (startModal && startModal.style.display !== 'none') {
+          e.preventDefault();
+          this.startMission(this.controlMode || 'gesture');
+        }
+      }
     });
 
     window.addEventListener('keyup', (e) => {
       this.keys[e.key.toLowerCase()] = false;
     });
 
-    // Mouse Steering
+    // Mouse Steering & Shooting
     this.canvas.addEventListener('mousemove', (e) => {
-      if ((this.controlMode === 'keyboard' || this.controlMode === 'hybrid') && this.running && !this.paused) {
+      if (this.running && !this.paused) {
         this.targetShipX = e.clientX;
         this.targetShipY = e.clientY;
       }
     });
 
     this.canvas.addEventListener('mousedown', (e) => {
-      if ((this.controlMode === 'keyboard' || this.controlMode === 'hybrid') && this.running && !this.paused) {
-        if (e.button === 0) this.player.fireCooldown = 0;
+      if (this.running && !this.paused) {
+        if (e.button === 0) {
+          this.mouseDown = true;
+          this.player.fireCooldown = 0;
+        }
         if (e.button === 2) this.player.shieldActive = true;
       }
     });
 
-    this.canvas.addEventListener('mouseup', (e) => {
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 0) this.mouseDown = false;
       if (e.button === 2) this.player.shieldActive = false;
     });
 
@@ -1885,17 +1933,122 @@ class SpaceShooterGame {
 
   async startMission(chosenMode) {
     this.audio.init();
-    document.getElementById('start-modal').style.display = 'none';
+    const modal = document.getElementById('start-modal');
+    if (modal) modal.style.display = 'none';
+
     this.setControlMode(chosenMode);
 
+    // Immediately start gameplay so spaceship, starfield, and enemies are visible without lag
+    this.startGame();
+
+    // Start camera asynchronously in background if gesture or hybrid mode is selected
     if (chosenMode === 'gesture' || chosenMode === 'hybrid') {
-      await this.startCamera();
+      try {
+        await this.startCamera();
+      } catch (err) {
+        console.warn('Camera failed to start in startMission:', err);
+      }
     }
-    this.startGameLoop();
+  }
+
+  startGame() {
+    this.gameState = 'PLAYING';
+    this.running = true;
+    this.paused = false;
+    this.score = 0;
+    this.wave = 1;
+    this.lives = 3;
+    this.bombs = 3;
+    this.combo = 1.0;
+    this.comboTimer = 0;
+
+    // Center player spaceship
+    this.player.x = this.width / 2;
+    this.player.y = this.height * 0.82;
+    this.player.radius = 24;
+    this.player.shieldActive = false;
+    this.player.shieldEnergy = this.player.shieldMax;
+    this.player.fireCooldown = 0;
+    this.player.tripleShotTimer = 0;
+    this.player.rapidFireTimer = 0;
+    this.player.invulnerableTimer = 0;
+
+    this.targetShipX = this.player.x;
+    this.targetShipY = this.player.y;
+
+    // Reset entities
+    this.bullets = [];
+    this.enemyBullets = [];
+    this.enemies = [];
+    this.boss = null;
+    this.particles = [];
+    this.powerups = [];
+    this.screenShake = 0;
+
+    // Spawn wave 1 with immediately visible enemies
+    this.spawnWaveEnemies();
+    this.updateHUD();
+    this.setGameStatus('PLAYING');
+
+    // Ensure animation loop is active
+    this.startAnimationLoop();
+  }
+
+  // Backwards compatibility alias
+  startGameLoop() {
+    this.startGame();
+  }
+
+  startAnimationLoop() {
+    if (this.animationLoopRunning) return;
+    this.animationLoopRunning = true;
+    this.lastFrameTime = performance.now();
+
+    const frame = (currentTime) => {
+      if (!this.animationLoopRunning) return;
+      const dt = Math.min(0.08, Math.max(0.001, (currentTime - this.lastFrameTime) / 1000));
+      this.lastFrameTime = currentTime;
+
+      try {
+        if (this.running && !this.paused) {
+          this.update(dt);
+        } else {
+          this.updateBackground(dt);
+        }
+        this.render();
+      } catch (err) {
+        console.error('Render/Update loop error:', err);
+      }
+
+      requestAnimationFrame(frame);
+    };
+
+    requestAnimationFrame(frame);
+  }
+
+  updateBackground(dt) {
+    // Parallax stars move even when paused or in READY state
+    this.stars.forEach(s => {
+      s.y += s.speed * 0.7;
+      if (s.y > this.height) {
+        s.y = 0;
+        s.x = Math.random() * this.width;
+      }
+    });
+
+    // Fade particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const pt = this.particles[i];
+      pt.x += pt.vx;
+      pt.y += pt.vy;
+      pt.life -= pt.decay;
+      if (pt.life <= 0) this.particles.splice(i, 1);
+    }
   }
 
   openSettings() {
     this.paused = true;
+    this.setGameStatus('PAUSED');
     this.updateAvailableCameras();
     document.getElementById('settings-modal').style.display = 'flex';
   }
@@ -1903,6 +2056,7 @@ class SpaceShooterGame {
   closeSettings() {
     document.getElementById('settings-modal').style.display = 'none';
     this.paused = false;
+    this.setGameStatus('PLAYING');
     this.lastFrameTime = performance.now();
   }
 
@@ -1915,14 +2069,17 @@ class SpaceShooterGame {
   }
 
   togglePause() {
+    if (!this.running && this.gameState !== 'PAUSED') return;
     this.paused = !this.paused;
     const modal = document.getElementById('pause-modal');
     if (this.paused) {
+      this.setGameStatus('PAUSED');
       document.getElementById('pause-title').textContent = 'MISSION PAUSED';
       document.getElementById('pause-message').textContent = 'Game paused. Resume when ready!';
-      modal.style.display = 'flex';
+      if (modal) modal.style.display = 'flex';
     } else {
-      modal.style.display = 'none';
+      this.setGameStatus('PLAYING');
+      if (modal) modal.style.display = 'none';
       this.lastFrameTime = performance.now();
     }
   }
@@ -1968,11 +2125,14 @@ class SpaceShooterGame {
       this.enemies = [];
     } else {
       const count = Math.min(16, 4 + this.wave * 2);
+      this.enemies = [];
       for (let i = 0; i < count; i++) {
         const type = ['scout', 'viper', 'interceptor', 'gunner'][Math.floor(Math.random() * Math.min(4, 1 + this.wave))];
+        // Ensure initial enemies in Wave 1 are immediately visible on screen
+        const startY = (this.wave === 1 && i < 3) ? (70 + i * 55) : (-40 - i * 65);
         this.enemies.push({
           x: 40 + Math.random() * (this.width - 80),
-          y: -40 - i * 65,
+          y: startY,
           type: type,
           hp: type === 'gunner' ? 35 : (type === 'interceptor' ? 25 : 15),
           vx: (Math.random() - 0.5) * 2,
@@ -1981,7 +2141,8 @@ class SpaceShooterGame {
         });
       }
     }
-    document.getElementById('wave-display').textContent = `WAVE ${this.wave < 10 ? '0' + this.wave : this.wave}`;
+    const waveEl = document.getElementById('wave-display');
+    if (waveEl) waveEl.textContent = `WAVE ${this.wave < 10 ? '0' + this.wave : this.wave}`;
   }
 
   spawnExplosionParticles(x, y, color, count = 12) {
@@ -2003,15 +2164,7 @@ class SpaceShooterGame {
   }
 
   gameLoop(currentTime) {
-    if (!this.running) return;
-    const dt = Math.min(0.08, (currentTime - this.lastFrameTime) / 1000);
-    this.lastFrameTime = currentTime;
-
-    if (!this.paused) {
-      this.update(dt);
-    }
-    this.render();
-    requestAnimationFrame((t) => this.gameLoop(t));
+    this.startAnimationLoop();
   }
 
   update(dt) {
@@ -2022,19 +2175,19 @@ class SpaceShooterGame {
       this.targetShipY += this.touchJoystick.dy * joySpeed;
     }
 
-    // 2. Keyboard Movement
-    if (this.controlMode === 'keyboard' || this.controlMode === 'hybrid') {
-      const moveSpeed = 480 * dt;
-      if (this.keys['arrowleft'] || this.keys['a']) this.targetShipX -= moveSpeed;
-      if (this.keys['arrowright'] || this.keys['d']) this.targetShipX += moveSpeed;
-      if (this.keys['arrowup'] || this.keys['w']) this.targetShipY -= moveSpeed;
-      if (this.keys['arrowdown'] || this.keys['s']) this.targetShipY += moveSpeed;
-    }
-
-    // Shield Activation
+    // Shield Detection Check
     const isGestureShield = (this.controlMode === 'gesture' || this.controlMode === 'hybrid') && (this.gesture === 'CLOSED_FIST');
     const isTouchShield = this.touchShielding;
-    const isKeyShield = !!this.keys['s'];
+    const isKeyShield = !!this.keys['shift'] || !!this.keys['e'] || !!this.keys['c'] || (!!this.keys['s'] && !this.keys['w'] && !this.keys['arrowdown']);
+
+    // 2. Keyboard Movement (Always available as responsive fallback)
+    const moveSpeed = 480 * dt;
+    if (this.keys['arrowleft'] || this.keys['a']) this.targetShipX -= moveSpeed;
+    if (this.keys['arrowright'] || this.keys['d']) this.targetShipX += moveSpeed;
+    if (this.keys['arrowup'] || this.keys['w']) this.targetShipY -= moveSpeed;
+    if (this.keys['arrowdown'] || (this.keys['s'] && !isKeyShield)) this.targetShipY += moveSpeed;
+
+    // Shield Activation
     this.player.shieldActive = (isGestureShield || isTouchShield || isKeyShield);
 
     // Shield Energy
@@ -2064,7 +2217,9 @@ class SpaceShooterGame {
     const isFiring = (
       ((this.controlMode === 'gesture' || this.controlMode === 'hybrid') && this.gesture === 'OPEN_PALM') ||
       this.touchFiring ||
-      !!this.keys[' ']
+      this.mouseDown ||
+      !!this.keys[' '] ||
+      !!this.keys['enter']
     );
 
     const fireInterval = this.player.rapidFireTimer > 0 ? 0.08 : 0.16;
@@ -2291,6 +2446,8 @@ class SpaceShooterGame {
 
   render() {
     const ctx = this.ctx;
+    // Always enforce DPR transform at frame start
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.save();
 
     // Screen Shake
@@ -2307,10 +2464,12 @@ class SpaceShooterGame {
 
     // Parallax Starfield
     this.stars.forEach(s => {
-      s.y += s.speed;
-      if (s.y > this.height) {
-        s.y = 0;
-        s.x = Math.random() * this.width;
+      if (this.running && !this.paused) {
+        s.y += s.speed;
+        if (s.y > this.height) {
+          s.y = 0;
+          s.x = Math.random() * this.width;
+        }
       }
       ctx.fillStyle = s.color;
       ctx.fillRect(s.x, s.y, s.size, s.size * (s.speed > 2.0 ? 2.2 : 1.0));
@@ -2456,76 +2615,85 @@ class SpaceShooterGame {
       ctx.fillRect(this.width / 2 - barW / 2 + 1, 46, (barW - 2) * bossHpPct, 10);
     }
 
-    // Player Spaceship
-    ctx.save();
-    ctx.translate(this.player.x, this.player.y);
+    // Player Spaceship (Rendered in READY, PLAYING, and PAUSED states)
+    if (this.gameState !== 'GAME OVER') {
+      ctx.save();
+      ctx.translate(this.player.x, this.player.y);
 
-    if (this.player.invulnerableTimer > 0 && Math.floor(performance.now() / 80) % 2 === 0) {
-      ctx.globalAlpha = 0.4;
-    }
-
-    // Thruster Particle Exhaust
-    ctx.fillStyle = '#00f0ff';
-    if (this.graphicsQuality !== 'battery') {
-      ctx.shadowBlur = 14;
-      ctx.shadowColor = '#00f0ff';
-    }
-    ctx.beginPath();
-    ctx.moveTo(-10, 18);
-    ctx.lineTo(0, 26 + Math.random() * 10);
-    ctx.lineTo(10, 18);
-    ctx.closePath();
-    ctx.fill();
-
-    // Spaceship Polygon
-    ctx.fillStyle = '#0f142a';
-    ctx.strokeStyle = '#00f0ff';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(0, -28);
-    ctx.lineTo(24, 18);
-    ctx.lineTo(10, 14);
-    ctx.lineTo(0, 20);
-    ctx.lineTo(-10, 14);
-    ctx.lineTo(-24, 18);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Cockpit
-    ctx.fillStyle = '#ffe600';
-    ctx.beginPath();
-    ctx.arc(0, -4, 5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Shield Dome
-    if (this.player.shieldActive && this.player.shieldEnergy > 0) {
-      ctx.strokeStyle = '#00ff88';
-      ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
-      if (this.graphicsQuality !== 'battery') {
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = '#00ff88';
+      if (this.player.invulnerableTimer > 0 && Math.floor(performance.now() / 80) % 2 === 0) {
+        ctx.globalAlpha = 0.4;
       }
-      ctx.lineWidth = 3;
+
+      // Thruster Particle Exhaust
+      ctx.fillStyle = '#00f0ff';
+      if (this.graphicsQuality !== 'battery') {
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = '#00f0ff';
+      }
       ctx.beginPath();
-      ctx.arc(0, 0, this.player.radius + 14, 0, Math.PI * 2);
+      ctx.moveTo(-10, 18);
+      ctx.lineTo(0, 26 + Math.random() * 10);
+      ctx.lineTo(10, 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // Spaceship Polygon
+      ctx.fillStyle = '#0f142a';
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -28);
+      ctx.lineTo(24, 18);
+      ctx.lineTo(10, 14);
+      ctx.lineTo(0, 20);
+      ctx.lineTo(-10, 14);
+      ctx.lineTo(-24, 18);
+      ctx.closePath();
       ctx.fill();
       ctx.stroke();
+
+      // Cockpit
+      ctx.fillStyle = '#ffe600';
+      ctx.beginPath();
+      ctx.arc(0, -4, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Shield Dome
+      if (this.player.shieldActive && this.player.shieldEnergy > 0) {
+        ctx.strokeStyle = '#00ff88';
+        ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+        if (this.graphicsQuality !== 'battery') {
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = '#00ff88';
+        }
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.player.radius + 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.restore();
     }
 
-    ctx.restore();
     ctx.restore();
   }
 
   gameOver() {
     this.running = false;
-    document.getElementById('gameover-stats').textContent = `Final Score: ${this.score} | Waves Survived: ${this.wave}`;
-    document.getElementById('gameover-modal').style.display = 'flex';
+    this.setGameStatus('GAME OVER');
+    const statsEl = document.getElementById('gameover-stats');
+    if (statsEl) statsEl.textContent = `Final Score: ${this.score.toString().padStart(6, '0')} | Waves Survived: ${this.wave}`;
+    const modal = document.getElementById('gameover-modal');
+    if (modal) modal.style.display = 'flex';
   }
 
   restartGame() {
-    document.getElementById('gameover-modal').style.display = 'none';
-    this.startGameLoop();
+    const goModal = document.getElementById('gameover-modal');
+    if (goModal) goModal.style.display = 'none';
+    const pauseModal = document.getElementById('pause-modal');
+    if (pauseModal) pauseModal.style.display = 'none';
+    this.startGame();
   }
 }
 
