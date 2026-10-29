@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>GestureStrike - AI Hand-Controlled Space Shooter</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,10 90,85 50,70 10,85' fill='%2300f0ff'/></svg>">
 
@@ -25,6 +25,10 @@
       --purple: #9d00ff;
       --dark-card: rgba(12, 16, 32, 0.92);
       --border-glow: 0 0 18px rgba(0, 240, 255, 0.4);
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
     }
 
     * {
@@ -33,29 +37,29 @@
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
+      touch-action: none;
+      -webkit-touch-callout: none;
     }
 
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
       background-color: var(--bg);
       color: #e4eaff;
       font-family: 'Rajdhani', sans-serif;
       overflow: hidden;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: fixed;
     }
 
     #game-container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      max-width: 1280px;
-      max-height: 960px;
-      background: radial-gradient(circle at center, #10152a 0%, #060810 100%);
-      box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+      height: -webkit-fill-available;
       overflow: hidden;
+      background: radial-gradient(circle at center, #10152a 0%, #060810 100%);
     }
 
     canvas#gameCanvas {
@@ -68,109 +72,71 @@
       z-index: 1;
     }
 
-    /* WEBCAM PREVIEW PIP */
-    #pip-container {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 190px;
-      height: 142px;
-      background: rgba(10, 14, 28, 0.88);
-      border: 2px solid var(--cyan);
-      border-radius: 8px;
-      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
-      overflow: hidden;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      transition: opacity 0.3s ease;
-    }
-
-    #pip-container.hidden {
-      opacity: 0.2;
-    }
-
-    #pipCanvas {
-      width: 100%;
-      height: 110px;
-      object-fit: cover;
-      transform: scaleX(-1); /* Mirrored */
-    }
-
-    #pip-label {
-      height: 32px;
-      background: #090d1c;
-      color: var(--cyan);
-      font-family: 'Orbitron', monospace;
-      font-size: 11px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      letter-spacing: 1px;
-      border-top: 1px solid rgba(0, 240, 255, 0.3);
-    }
-
-    /* TOP HUD */
+    /* TOP HEADS-UP DISPLAY (RESPONSIVE) */
     #hud-top {
       position: absolute;
-      top: 16px;
-      left: 20px;
-      right: 20px;
+      top: calc(10px + var(--sat));
+      left: calc(12px + var(--sal));
+      right: calc(12px + var(--sar));
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      z-index: 10;
+      z-index: 15;
       pointer-events: none;
+      gap: 8px;
     }
 
     .hud-panel {
       background: var(--dark-card);
       border: 1px solid rgba(0, 240, 255, 0.4);
-      border-radius: 6px;
-      padding: 10px 18px;
+      border-radius: 8px;
+      padding: 6px 12px;
       box-shadow: var(--border-glow);
+      pointer-events: auto;
+      backdrop-filter: blur(6px);
     }
 
     .hud-label {
-      font-size: 11px;
+      font-size: 10px;
       color: #8a9fc4;
       text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 2px;
+      letter-spacing: 1px;
     }
 
     .hud-value {
       font-family: 'Orbitron', monospace;
-      font-size: 22px;
+      font-size: clamp(16px, 3.5vw, 22px);
       font-weight: 900;
       color: #ffffff;
       text-shadow: 0 0 10px var(--cyan);
+      line-height: 1.1;
     }
 
     #gesture-badge {
       font-family: 'Orbitron', monospace;
-      font-size: 13px;
+      font-size: clamp(10px, 2.4vw, 12px);
       font-weight: 700;
-      padding: 8px 16px;
-      border-radius: 20px;
+      padding: 6px 12px;
+      border-radius: 18px;
       background: rgba(0, 240, 255, 0.15);
       border: 1px solid var(--cyan);
       color: var(--cyan);
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+      pointer-events: auto;
+      backdrop-filter: blur(6px);
     }
 
     .meter-container {
-      width: 140px;
-      height: 10px;
+      width: clamp(70px, 18vw, 130px);
+      height: 7px;
       background: #141c33;
       border: 1px solid rgba(0, 240, 255, 0.5);
-      border-radius: 5px;
+      border-radius: 4px;
       overflow: hidden;
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     .meter-fill {
@@ -179,6 +145,224 @@
       background: linear-gradient(90deg, #00f0ff, #00ff88);
       transition: width 0.1s linear;
       box-shadow: 0 0 8px #00ff88;
+    }
+
+    /* QUICK CONTROLS BAR (BOTTOM LEFT / RESPONSIVE) */
+    #quick-controls {
+      position: absolute;
+      bottom: calc(14px + var(--sab));
+      left: calc(12px + var(--sal));
+      display: flex;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .icon-btn {
+      width: clamp(38px, 9vw, 44px);
+      height: clamp(38px, 9vw, 44px);
+      border-radius: 50%;
+      background: var(--dark-card);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+      font-size: clamp(14px, 3.8vw, 18px);
+      transition: all 0.2s;
+      outline: none;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+      background: rgba(0, 240, 255, 0.25);
+    }
+
+    /* WEBCAM PREVIEW PIP (RESPONSIVE & MINIMIZABLE) */
+    #pip-container {
+      position: absolute;
+      top: calc(75px + var(--sat));
+      right: calc(12px + var(--sar));
+      width: clamp(110px, 26vw, 180px);
+      height: clamp(85px, 20vw, 135px);
+      background: rgba(10, 14, 28, 0.92);
+      border: 1.5px solid var(--cyan);
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+      overflow: hidden;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+    }
+
+    #pip-container.minimized {
+      height: 28px;
+      width: 110px;
+    }
+
+    #pip-container.minimized #pipCanvas {
+      display: none;
+    }
+
+    #pip-container.hidden {
+      display: none !important;
+    }
+
+    #pip-header {
+      height: 24px;
+      background: #090d1c;
+      color: var(--cyan);
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+    }
+
+    .pip-tool-btn {
+      background: transparent;
+      border: none;
+      color: var(--cyan);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+
+    #pipCanvas {
+      width: 100%;
+      height: calc(100% - 24px);
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    /* MOBILE ON-SCREEN TOUCH CONTROLS */
+    #touch-controls-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: none;
+    }
+
+    #touch-controls-layer.active {
+      display: block;
+    }
+
+    /* Floating Virtual Joystick Zone (Left Half) */
+    #joystick-zone {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 50%;
+      height: 70%;
+      pointer-events: auto;
+    }
+
+    #joystick-base {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, rgba(0, 240, 255, 0.22) 100%);
+      border: 2px solid rgba(0, 240, 255, 0.6);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+      transform: translate(-50%, -50%);
+      display: none;
+      pointer-events: none;
+    }
+
+    #joystick-thumb {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00f0ff, #0088ff);
+      box-shadow: 0 0 15px #00f0ff;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    /* Action Buttons (Right Half) */
+    #touch-action-buttons {
+      position: absolute;
+      right: calc(14px + var(--sar));
+      bottom: calc(16px + var(--sab));
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 14px;
+      pointer-events: auto;
+    }
+
+    .touch-btn {
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 18px rgba(0, 240, 255, 0.4);
+      outline: none;
+      transition: transform 0.08s ease, filter 0.08s ease;
+      touch-action: none;
+    }
+
+    .touch-btn:active, .touch-btn.pressed {
+      transform: scale(0.92);
+      filter: brightness(1.3);
+    }
+
+    #btn-touch-fire {
+      width: clamp(66px, 16vw, 86px);
+      height: clamp(66px, 16vw, 86px);
+      background: radial-gradient(circle, #00f0ff 0%, #0066cc 100%);
+      border: 3px solid #ffffff;
+      color: #060810;
+      font-size: clamp(20px, 5vw, 28px);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+    }
+
+    .touch-btn-sub-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    #btn-touch-shield {
+      width: clamp(48px, 12vw, 60px);
+      height: clamp(48px, 12vw, 60px);
+      background: radial-gradient(circle, #00ff88 0%, #008844 100%);
+      border: 2px solid #ffffff;
+      color: #060810;
+      font-size: clamp(16px, 4vw, 22px);
+      box-shadow: 0 0 18px rgba(0, 255, 136, 0.5);
+    }
+
+    #btn-touch-bomb {
+      width: clamp(48px, 12vw, 60px);
+      height: clamp(48px, 12vw, 60px);
+      background: radial-gradient(circle, #ffe600 0%, #cc7700 100%);
+      border: 2px solid #ffffff;
+      color: #060810;
+      font-size: clamp(16px, 4vw, 22px);
+      box-shadow: 0 0 18px rgba(255, 230, 0, 0.5);
+    }
+
+    .btn-touch-label {
+      font-size: 8px;
+      letter-spacing: 0.5px;
+      margin-top: 1px;
     }
 
     /* MODALS & OVERLAYS */
@@ -195,80 +379,86 @@
       align-items: center;
       justify-content: center;
       z-index: 50;
-      padding: 24px;
+      padding: clamp(12px, 3vw, 24px);
       text-align: center;
+      overflow-y: auto;
     }
 
     .modal-box {
       background: var(--dark-card);
       border: 2px solid var(--cyan);
-      border-radius: 12px;
-      padding: 40px;
-      max-width: 620px;
-      width: 90%;
+      border-radius: 14px;
+      padding: clamp(20px, 4vw, 36px);
+      max-width: 580px;
+      width: 92%;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 0 35px rgba(0, 240, 255, 0.4);
-      animation: popIn 0.3s ease-out;
+      animation: popIn 0.25s ease-out;
     }
 
     @keyframes popIn {
-      from { transform: scale(0.9); opacity: 0; }
+      from { transform: scale(0.92); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
 
     h1.game-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 42px;
+      font-size: clamp(26px, 6.5vw, 42px);
       font-weight: 900;
-      letter-spacing: 4px;
+      letter-spacing: 3px;
       color: var(--cyan);
       text-transform: uppercase;
       margin-bottom: 4px;
       text-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
+      line-height: 1.1;
     }
 
     .game-subtitle {
       color: var(--yellow);
-      font-size: 15px;
+      font-size: clamp(11px, 2.8vw, 14px);
       font-weight: 600;
-      letter-spacing: 2px;
-      margin-bottom: 26px;
+      letter-spacing: 1.5px;
+      margin-bottom: 20px;
       text-transform: uppercase;
     }
 
     .controls-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin: 20px 0 30px;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 16px 0 24px;
       text-align: left;
     }
 
     .control-card {
-      background: rgba(18, 24, 46, 0.7);
+      background: rgba(18, 24, 46, 0.75);
       border: 1px solid rgba(0, 240, 255, 0.3);
-      padding: 10px 14px;
-      border-radius: 6px;
+      padding: 10px 12px;
+      border-radius: 8px;
     }
 
     .control-title {
       font-family: 'Orbitron', monospace;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--cyan);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
+      font-weight: 700;
     }
 
     .control-desc {
-      font-size: 13px;
+      font-size: 12px;
       color: #b8c8e8;
+      line-height: 1.25;
     }
 
     .btn {
       font-family: 'Orbitron', sans-serif;
-      font-size: 15px;
+      font-size: clamp(12px, 3vw, 15px);
       font-weight: 700;
-      letter-spacing: 2px;
-      padding: 14px 28px;
-      border-radius: 6px;
+      letter-spacing: 1.5px;
+      padding: 12px 22px;
+      border-radius: 8px;
       border: none;
       cursor: pointer;
       text-transform: uppercase;
@@ -276,8 +466,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      margin: 6px;
+      gap: 8px;
+      margin: 6px 4px;
     }
 
     .btn-primary {
@@ -286,54 +476,52 @@
       box-shadow: 0 0 18px rgba(0, 240, 255, 0.5);
     }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 28px rgba(0, 240, 255, 0.8);
+    .btn-primary:active {
+      transform: scale(0.96);
     }
 
     .btn-secondary {
       background: transparent;
-      border: 1px solid rgba(0, 240, 255, 0.6);
+      border: 1.5px solid rgba(0, 240, 255, 0.6);
       color: var(--cyan);
     }
 
-    .btn-secondary:hover {
+    .btn-secondary:active {
       background: rgba(0, 240, 255, 0.15);
-      border-color: var(--cyan);
     }
 
-    /* HUD BUTTONS */
-    #quick-controls {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
+    /* SETTINGS CONTROLS */
+    .settings-row {
       display: flex;
-      gap: 10px;
-      z-index: 10;
-    }
-
-    .icon-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--dark-card);
-      border: 1px solid var(--cyan);
-      color: var(--cyan);
-      display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
-      font-size: 18px;
-      transition: all 0.2s;
+      margin: 14px 0;
+      text-align: left;
+      font-size: 14px;
     }
 
-    .icon-btn:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 18px var(--cyan);
+    .settings-label {
+      color: #ffffff;
+      font-weight: 600;
     }
 
-    /* Hidden video element for MediaPipe input */
+    .settings-sublabel {
+      font-size: 11px;
+      color: #8a9fc4;
+    }
+
+    select, input[type="range"] {
+      background: #090e1f;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      outline: none;
+    }
+
+    /* Hidden video element for camera input */
     #webcam-video {
       display: none;
     }
@@ -342,126 +530,219 @@
 <body>
 
 <div id="game-container">
-  <!-- Game Canvas -->
-  <canvas id="gameCanvas" width="960" height="720"></canvas>
+  <!-- Game Canvas (Responsive High-DPI) -->
+  <canvas id="gameCanvas"></canvas>
 
   <!-- Top Heads-Up Display -->
   <div id="hud-top">
     <div class="hud-panel">
       <div class="hud-label">Score</div>
       <div class="hud-value" id="hud-score">000000</div>
-      <div class="hud-label" style="margin-top:6px;">Combo</div>
+      <div class="hud-label" style="margin-top:4px;">Combo</div>
       <div class="meter-container">
         <div class="meter-fill" id="meter-combo" style="width: 0%; background: linear-gradient(90deg, #ff0077, #ffe600);"></div>
       </div>
     </div>
 
-    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
       <div id="gesture-badge">
         <span id="gesture-icon">✋</span>
-        <span id="gesture-text">TRACKING READY</span>
+        <span id="gesture-text">STANDBY</span>
       </div>
-      <div style="font-family:'Orbitron', monospace; font-size:12px; color:var(--yellow); font-weight:700;" id="wave-display">
+      <div style="font-family:'Orbitron', monospace; font-size:clamp(10px, 2.5vw, 12px); color:var(--yellow); font-weight:700;" id="wave-display">
         WAVE 01
       </div>
     </div>
 
     <div class="hud-panel" style="text-align: right;">
-      <div class="hud-label">Shield Integrity</div>
+      <div class="hud-label">Shield</div>
       <div class="meter-container" style="margin-left:auto;">
         <div class="meter-fill" id="meter-shield" style="width: 100%;"></div>
       </div>
-      <div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px; align-items:center;">
-        <span class="hud-label">Lives:</span>
-        <span id="lives-display" style="color:var(--magenta); font-size:18px; letter-spacing:2px;">❤️❤️❤️</span>
-        <span class="hud-label" style="margin-left:8px;">Bombs:</span>
-        <span id="bombs-display" style="color:var(--yellow); font-family:'Orbitron'; font-weight:700;">💣 3</span>
+      <div style="margin-top:6px; display:flex; justify-content:flex-end; gap:6px; align-items:center;">
+        <span id="lives-display" style="color:var(--magenta); font-size:clamp(14px, 3.5vw, 18px); letter-spacing:1px;">❤️❤️❤️</span>
+        <span id="bombs-display" style="color:var(--yellow); font-family:'Orbitron'; font-weight:700; font-size:clamp(11px, 2.5vw, 13px); margin-left:4px;">💣 3</span>
       </div>
     </div>
   </div>
 
-  <!-- Bottom Left Controls -->
+  <!-- Quick Controls Bar (Bottom Left) -->
   <div id="quick-controls">
-    <button class="icon-btn" id="btn-audio" title="Toggle Sound (M)">🔊</button>
-    <button class="icon-btn" id="btn-input-mode" title="Toggle Gesture/Keyboard (K)">✋</button>
-    <button class="icon-btn" id="btn-pause" title="Pause Game (P)">⏸️</button>
+    <button class="icon-btn" id="btn-audio" title="Toggle Sound">🔊</button>
+    <button class="icon-btn" id="btn-input-mode" title="Toggle Control Mode">✋</button>
+    <button class="icon-btn" id="btn-settings-open" title="Settings">⚙️</button>
+    <button class="icon-btn" id="btn-fullscreen" title="Toggle Fullscreen">⛶</button>
+    <button class="icon-btn" id="btn-pause" title="Pause Game">⏸️</button>
   </div>
 
-  <!-- Webcam PIP Overlay -->
-  <div id="pip-container">
-    <canvas id="pipCanvas" width="190" height="110"></canvas>
-    <div id="pip-label">AI TRACKER: STANDBY</div>
+  <!-- Mobile On-Screen Touch Controls Layer -->
+  <div id="touch-controls-layer">
+    <!-- Virtual Floating Joystick Zone -->
+    <div id="joystick-zone">
+      <div id="joystick-base">
+        <div id="joystick-thumb"></div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div id="touch-action-buttons">
+      <div class="touch-btn-sub-row">
+        <button class="touch-btn" id="btn-touch-shield">
+          <span>🛡️</span>
+          <span class="btn-touch-label">SHIELD</span>
+        </button>
+        <button class="touch-btn" id="btn-touch-bomb">
+          <span>💣</span>
+          <span class="btn-touch-label">EMP</span>
+        </button>
+      </div>
+      <button class="touch-btn" id="btn-touch-fire">
+        <span>⚡</span>
+        <span class="btn-touch-label">FIRE</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Webcam PIP Overlay (Draggable / Minimizable) -->
+  <div id="pip-container" class="hidden">
+    <div id="pip-header">
+      <span id="pip-title">CAMERA AI</span>
+      <div>
+        <button class="pip-tool-btn" id="btn-camera-flip" title="Switch Front/Back Camera">🔄</button>
+        <button class="pip-tool-btn" id="btn-pip-toggle" title="Minimize/Maximize">👁️</button>
+      </div>
+    </div>
+    <canvas id="pipCanvas" width="160" height="120"></canvas>
   </div>
 
   <!-- START MODAL -->
   <div class="modal-overlay" id="start-modal">
     <div class="modal-box">
       <h1 class="game-title">GestureStrike</h1>
-      <div class="game-subtitle">AI-Powered Hand-Steered Space Combat</div>
+      <div class="game-subtitle">Mobile & Desktop AI Space Combat</div>
 
       <div class="controls-grid">
         <div class="control-card">
-          <div class="control-title">✋ OPEN PALM</div>
-          <div class="control-desc">Steer Ship & Fire Plasma Cannons</div>
+          <div class="control-title">✋ HAND GESTURES</div>
+          <div class="control-desc">Open Palm = Steer & Fire<br>Closed Fist = Energy Shield<br>Pinch = EMP Blast</div>
         </div>
         <div class="control-card">
-          <div class="control-title">✊ CLOSED FIST</div>
-          <div class="control-desc">Activate Heavy Energy Shield</div>
+          <div class="control-title">📱 TOUCH CONTROLS</div>
+          <div class="control-desc">Left thumb = Virtual Joystick<br>Right thumb = Fire / Shield / EMP</div>
         </div>
         <div class="control-card">
-          <div class="control-title">🤏 PINCH GESTURE</div>
-          <div class="control-desc">Launch Screen-Clearing EMP Bomb</div>
-        </div>
-        <div class="control-card">
-          <div class="control-title">⌨️ KEYBOARD BACKUP</div>
-          <div class="control-desc">Arrows/WASD, Space = Fire, S = Shield, B = EMP</div>
+          <div class="control-title">⌨️ DESKTOP KEYS</div>
+          <div class="control-desc">WASD / Arrows = Steer<br>Space = Fire | S = Shield | B = EMP</div>
         </div>
       </div>
 
-      <div style="margin-top: 15px;">
-        <button class="btn btn-primary" id="btn-start-webcam">
-          <span>🚀 START WITH WEBCAM</span>
+      <div style="margin-top: 10px;">
+        <button class="btn btn-primary" id="btn-start-camera">
+          <span>📷 PLAY WITH CAMERA</span>
+        </button>
+        <button class="btn btn-secondary" id="btn-start-touch">
+          <span>📱 PLAY WITH TOUCH</span>
         </button>
         <button class="btn btn-secondary" id="btn-start-keyboard">
-          <span>⌨️ PLAY WITH KEYBOARD</span>
+          <span>⌨️ KEYBOARD / MOUSE</span>
         </button>
       </div>
 
-      <p style="font-size:12px; color:#788db3; margin-top:16px;">
-        Camera runs 100% locally in your browser. Video frames are never recorded or transmitted.
+      <p style="font-size:11px; color:#788db3; margin-top:14px;">
+        Camera tracking runs 100% locally on your device via MediaPipe AI. Video is never uploaded.
       </p>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settings-modal" style="display: none;">
+    <div class="modal-box">
+      <h1 class="game-title" style="font-size: clamp(22px, 5vw, 30px);">SETTINGS</h1>
+      <div class="game-subtitle">System & Control Preferences</div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Control Mode</div>
+          <div class="settings-sublabel">Select primary control style</div>
+        </div>
+        <select id="setting-control-mode">
+          <option value="gesture">Hand Gestures ✋</option>
+          <option value="touch">Touch Controls 📱</option>
+          <option value="hybrid">Hybrid (Both) ⚡</option>
+          <option value="keyboard">Keyboard / Mouse ⌨️</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Active Camera</div>
+          <div class="settings-sublabel">Selfie front or back lens</div>
+        </div>
+        <select id="setting-camera-facing">
+          <option value="user">Front Selfie Camera</option>
+          <option value="environment">Rear / Back Camera</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Gesture Sensitivity</div>
+          <div class="settings-sublabel" id="sensitivity-value">2.5x</div>
+        </div>
+        <input type="range" id="setting-sensitivity" min="1.0" max="4.0" step="0.25" value="2.5" style="width:110px;">
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Graphics Quality</div>
+          <div class="settings-sublabel">Adjust particle density</div>
+        </div>
+        <select id="setting-graphics">
+          <option value="high">High Quality (Neon Sparks)</option>
+          <option value="balanced" selected>Balanced (Standard)</option>
+          <option value="battery">Battery Saver (Optimized)</option>
+        </select>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <button class="btn btn-primary" id="btn-settings-save">SAVE & RESUME</button>
+      </div>
     </div>
   </div>
 
   <!-- PAUSE / HAND LOST MODAL -->
   <div class="modal-overlay" id="pause-modal" style="display: none;">
     <div class="modal-box">
-      <h1 class="game-title" style="font-size:32px;" id="pause-title">MISSION PAUSED</h1>
-      <p style="color:var(--yellow); font-size:18px; margin:20px 0;" id="pause-message">
-        Show your hand in camera frame to resume
+      <h1 class="game-title" style="font-size:clamp(22px, 5vw, 32px);" id="pause-title">MISSION PAUSED</h1>
+      <p style="color:var(--yellow); font-size:clamp(14px, 3.5vw, 17px); margin:16px 0;" id="pause-message">
+        Game paused. Resume when ready!
       </p>
-      <button class="btn btn-primary" id="btn-resume">RESUME MISSION</button>
+      <div>
+        <button class="btn btn-primary" id="btn-resume">RESUME</button>
+        <button class="btn btn-secondary" id="btn-pause-settings">SETTINGS</button>
+        <button class="btn btn-secondary" id="btn-pause-restart">RESTART</button>
+      </div>
     </div>
   </div>
 
   <!-- GAME OVER MODAL -->
   <div class="modal-overlay" id="gameover-modal" style="display: none;">
     <div class="modal-box">
-      <h1 class="game-title" style="color:var(--magenta); font-size:36px;">VESSEL DESTROYED</h1>
+      <h1 class="game-title" style="color:var(--magenta); font-size:clamp(24px, 5.5vw, 36px);">VESSEL DESTROYED</h1>
       <div class="game-subtitle" id="gameover-stats">Final Score: 000000 | Wave 01</div>
-      <div style="margin:25px 0;">
+      <div style="margin:20px 0;">
         <button class="btn btn-primary" id="btn-restart">RESTART MISSION</button>
       </div>
     </div>
   </div>
 
   <!-- Hidden HTML5 Video for camera capture -->
-  <video id="webcam-video" playsinline></video>
+  <video id="webcam-video" playsinline muted autoplay></video>
 </div>
 
 <script>
 /* ==========================================================================
-   GESTURESTRIKE BROWSER ENGINE (Audio, AI Vision, Canvas 60 FPS)
+   GESTURESTRIKE 2.0: MOBILE + DESKTOP ADAPTIVE ENGINE
    ========================================================================== */
 
 // --- PROCEDURAL WEB AUDIO SYNTHESIZER ---
@@ -475,156 +756,145 @@ class ProceduralAudio {
 
   init() {
     if (!this.ctx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioContext();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
       this.startSynthwaveBeat();
     }
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
 
   playLaser() {
     if (this.muted || !this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const now = this.ctx.currentTime;
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(880, now);
-    osc.frequency.exponentialRampToValueAtTime(180, now + 0.12);
-
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.12);
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const now = this.ctx.currentTime;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.11);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.11);
+    } catch (_) {}
   }
 
   playEnemyLaser() {
     if (this.muted || !this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const now = this.ctx.currentTime;
-
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(440, now);
-    osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
-
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.15);
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const now = this.ctx.currentTime;
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.14);
+      gain.gain.setValueAtTime(0.10, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } catch (_) {}
   }
 
   playExplosion(boss = false) {
     if (this.muted || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const duration = boss ? 1.4 : 0.45;
+    try {
+      const now = this.ctx.currentTime;
+      const duration = boss ? 1.2 : 0.4;
+      const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
 
-    // Noise buffer
-    const bufferSize = this.ctx.sampleRate * duration;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const output = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1;
-    }
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = buffer;
 
-    const whiteNoise = this.ctx.createBufferSource();
-    whiteNoise.buffer = buffer;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(boss ? 480 : 650, now);
+      filter.frequency.exponentialRampToValueAtTime(30, now + duration);
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(boss ? 500 : 700, now);
-    filter.frequency.exponentialRampToValueAtTime(40, now + duration);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(boss ? 0.4 : 0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(boss ? 0.45 : 0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    whiteNoise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    whiteNoise.start(now);
+      whiteNoise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      whiteNoise.start(now);
+    } catch (_) {}
   }
 
   playEmp() {
     if (this.muted || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1200, now);
-    osc.frequency.exponentialRampToValueAtTime(60, now + 1.2);
-
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 1.2);
-    this.playExplosion(true);
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1200, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 1.1);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 1.1);
+      this.playExplosion(true);
+    } catch (_) {}
   }
 
   playPowerup() {
     if (this.muted || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.50];
-    notes.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const noteTime = now + idx * 0.07;
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, noteTime);
-
-      gain.gain.setValueAtTime(0.18, noteTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.1);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(noteTime);
-      osc.stop(noteTime + 0.1);
-    });
+    try {
+      const now = this.ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const noteTime = now + idx * 0.06;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, noteTime);
+        gain.gain.setValueAtTime(0.15, noteTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.09);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(noteTime);
+        osc.stop(noteTime + 0.09);
+      });
+    } catch (_) {}
   }
 
   startSynthwaveBeat() {
     if (this.musicTimer) clearInterval(this.musicTimer);
-    const bassline = [65.41, 65.41, 77.78, 87.31, 65.41, 65.41, 98.00, 87.31]; // C2, Eb2, F2, G2
+    const bassline = [65.41, 65.41, 77.78, 87.31, 65.41, 65.41, 98.00, 87.31];
     this.musicTimer = setInterval(() => {
       if (this.muted || !this.ctx) return;
-      const now = this.ctx.currentTime;
-      const freq = bassline[this.step % bassline.length];
-
-      // Bass synth pulse
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, now);
-
-      gain.gain.setValueAtTime(0.07, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(450, now);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.2);
-
-      this.step++;
-    }, 240); // ~125 BPM 8th notes
+      try {
+        const now = this.ctx.currentTime;
+        const freq = bassline[this.step % bassline.length];
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.19);
+        this.step++;
+      } catch (_) {}
+    }, 240);
   }
 
   toggleMute() {
@@ -633,7 +903,7 @@ class ProceduralAudio {
   }
 }
 
-// --- ONE EURO FILTER FOR ULTRA-SMOOTH JITTER-FREE TRACKING ---
+// --- ONE EURO FILTER ---
 class OneEuroFilter {
   constructor(minCutoff = 1.0, beta = 0.05, dCutoff = 1.0) {
     this.minCutoff = minCutoff;
@@ -657,16 +927,13 @@ class OneEuroFilter {
       this.tPrev = t;
       return x;
     }
-
     const dt = Math.max(0.001, (t - this.tPrev) / 1000);
     this.tPrev = t;
     const rate = 1.0 / dt;
-
     const dx = (x - this.xPrev) / dt;
     const aD = this.alpha(rate, this.dCutoff);
     const dxHat = aD * dx + (1 - aD) * this.dxPrev;
     this.dxPrev = dxHat;
-
     const cutoff = this.minCutoff + this.beta * Math.abs(dxHat);
     const a = this.alpha(rate, cutoff);
     const xHat = a * x + (1 - a) * this.xPrev;
@@ -681,7 +948,7 @@ class OneEuroFilter {
   }
 }
 
-// --- GAME ENGINE ---
+// --- MAIN GAME ENGINE (MOBILE + DESKTOP RESPONSIVE) ---
 class SpaceShooterGame {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -694,9 +961,12 @@ class SpaceShooterGame {
     this.filterX = new OneEuroFilter(1.0, 0.05);
     this.filterY = new OneEuroFilter(1.0, 0.05);
 
+    // Dynamic Viewport Dimensions
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+
     // Game state
-    this.width = 960;
-    this.height = 720;
     this.running = false;
     this.paused = false;
     this.score = 0;
@@ -706,22 +976,28 @@ class SpaceShooterGame {
     this.combo = 1.0;
     this.comboTimer = 0;
 
-    // Control Mode
-    this.useWebcam = false;
+    // Control Modes: 'gesture', 'touch', 'hybrid', 'keyboard'
+    this.controlMode = 'touch';
+    this.cameraFacing = 'user'; // 'user' (selfie) or 'environment' (back)
+    this.sensitivity = 2.5;
+    this.graphicsQuality = 'balanced'; // 'high', 'balanced', 'battery'
+
+    // Vision AI State
+    this.hands = null;
+    this.cameraStream = null;
     this.handDetected = false;
     this.lastHandSeen = performance.now();
     this.gesture = 'IDLE'; // OPEN_PALM, CLOSED_FIST, PINCH, IDLE
-    this.rawHandX = 0.5;
-    this.rawHandY = 0.5;
-    this.targetShipX = 480;
-    this.targetShipY = 600;
+    this.isProcessingFrame = false;
 
-    // Player
+    // Steering targets
+    this.targetShipX = this.width / 2;
+    this.targetShipY = this.height * 0.82;
+
+    // Player vessel
     this.player = {
-      x: 480,
-      y: 600,
-      targetX: 480,
-      targetY: 600,
+      x: this.width / 2,
+      y: this.height * 0.82,
       radius: 24,
       shieldActive: false,
       shieldEnergy: 100,
@@ -732,7 +1008,7 @@ class SpaceShooterGame {
       invulnerableTimer: 0
     };
 
-    // Arrays
+    // Entities
     this.bullets = [];
     this.enemyBullets = [];
     this.enemies = [];
@@ -742,33 +1018,92 @@ class SpaceShooterGame {
     this.stars = [];
     this.screenShake = 0;
 
-    // Keys
+    // Touch Controller State
+    this.touchJoystick = {
+      active: false,
+      touchId: null,
+      startX: 0,
+      startY: 0,
+      currentX: 0,
+      currentY: 0,
+      dx: 0,
+      dy: 0
+    };
+    this.touchFiring = false;
+    this.touchShielding = false;
+
+    // Keyboard state
     this.keys = {};
 
+    this.detectDeviceDefaults();
+    this.initCanvasResize();
     this.initStars();
     this.bindEvents();
     this.lastFrameTime = performance.now();
   }
 
+  detectDeviceDefaults() {
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isSmallScreen = window.innerWidth < 768;
+
+    if (isTouch || isSmallScreen) {
+      this.controlMode = 'touch';
+      document.getElementById('setting-control-mode').value = 'touch';
+      document.getElementById('touch-controls-layer').classList.add('active');
+      document.getElementById('btn-input-mode').textContent = '📱';
+      document.getElementById('gesture-text').textContent = 'TOUCH ACTIVE';
+    } else {
+      this.controlMode = 'gesture';
+      document.getElementById('setting-control-mode').value = 'gesture';
+      document.getElementById('btn-input-mode').textContent = '✋';
+    }
+  }
+
+  initCanvasResize() {
+    const resizeHandler = () => {
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
+      this.dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+
+      this.canvas.width = Math.floor(this.width * this.dpr);
+      this.canvas.height = Math.floor(this.height * this.dpr);
+      this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+
+      // Re-clamp player inside visible boundaries
+      this.player.x = Math.max(30, Math.min(this.width - 30, this.player.x));
+      this.player.y = Math.max(80, Math.min(this.height - 40, this.player.y));
+      this.targetShipX = this.player.x;
+      this.targetShipY = this.player.y;
+
+      this.initStars();
+    };
+
+    window.addEventListener('resize', resizeHandler);
+    window.addEventListener('orientationchange', () => setTimeout(resizeHandler, 200));
+    resizeHandler();
+  }
+
   initStars() {
+    const starCount = this.graphicsQuality === 'battery' ? 60 : (this.graphicsQuality === 'high' ? 180 : 110);
     this.stars = [];
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < starCount; i++) {
       this.stars.push({
         x: Math.random() * this.width,
         y: Math.random() * this.height,
-        speed: 0.5 + Math.random() * 2.5,
-        size: 0.8 + Math.random() * 2.0,
+        speed: 0.6 + Math.random() * 2.6,
+        size: 0.8 + Math.random() * 2.2,
         color: ['#ffffff', '#00f0ff', '#ffe600', '#9d00ff'][Math.floor(Math.random() * 4)]
       });
     }
   }
 
   bindEvents() {
+    // Keyboard inputs
     window.addEventListener('keydown', (e) => {
       this.keys[e.key.toLowerCase()] = true;
       if (e.key.toLowerCase() === 'm') this.toggleAudio();
-      if (e.key.toLowerCase() === 'k') this.toggleInputMode();
-      if (e.key.toLowerCase() === 'p') this.togglePause();
+      if (e.key.toLowerCase() === 'k') this.cycleInputMode();
+      if (e.key.toLowerCase() === 'p' || e.key === 'Escape') this.togglePause();
       if (e.key.toLowerCase() === 'b' && this.running && !this.paused) this.triggerEmp();
     });
 
@@ -776,89 +1111,324 @@ class SpaceShooterGame {
       this.keys[e.key.toLowerCase()] = false;
     });
 
-    // Mouse steering fallback
+    // Mouse Steering
     this.canvas.addEventListener('mousemove', (e) => {
-      if (!this.useWebcam && this.running && !this.paused) {
-        const rect = this.canvas.getBoundingClientRect();
-        this.targetShipX = (e.clientX - rect.left) * (this.width / rect.width);
-        this.targetShipY = (e.clientY - rect.top) * (this.height / rect.height);
+      if ((this.controlMode === 'keyboard' || this.controlMode === 'hybrid') && this.running && !this.paused) {
+        this.targetShipX = e.clientX;
+        this.targetShipY = e.clientY;
       }
     });
 
     this.canvas.addEventListener('mousedown', (e) => {
-      if (!this.useWebcam && this.running && !this.paused) {
-        if (e.button === 0) this.player.fireCooldown = 0; // Left click fire
-        if (e.button === 2) this.player.shieldActive = true; // Right click shield
+      if ((this.controlMode === 'keyboard' || this.controlMode === 'hybrid') && this.running && !this.paused) {
+        if (e.button === 0) this.player.fireCooldown = 0;
+        if (e.button === 2) this.player.shieldActive = true;
       }
     });
 
     this.canvas.addEventListener('mouseup', (e) => {
-      if (!this.useWebcam && e.button === 2) this.player.shieldActive = false;
+      if (e.button === 2) this.player.shieldActive = false;
     });
 
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    // UI Buttons
-    document.getElementById('btn-start-webcam').onclick = () => this.startWithCamera();
-    document.getElementById('btn-start-keyboard').onclick = () => this.startWithKeyboard();
+    // --- MOBILE TOUCH CONTROLS (VIRTUAL JOYSTICK & BUTTONS) ---
+    const joyZone = document.getElementById('joystick-zone');
+    const joyBase = document.getElementById('joystick-base');
+    const joyThumb = document.getElementById('joystick-thumb');
+
+    joyZone.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (this.touchJoystick.active) return;
+      const touch = e.changedTouches[0];
+      this.touchJoystick.active = true;
+      this.touchJoystick.touchId = touch.identifier;
+      this.touchJoystick.startX = touch.clientX;
+      this.touchJoystick.startY = touch.clientY;
+      this.touchJoystick.currentX = touch.clientX;
+      this.touchJoystick.currentY = touch.clientY;
+      this.touchJoystick.dx = 0;
+      this.touchJoystick.dy = 0;
+
+      joyBase.style.left = `${touch.clientX}px`;
+      joyBase.style.top = `${touch.clientY}px`;
+      joyBase.style.display = 'block';
+      joyThumb.style.left = '50%';
+      joyThumb.style.top = '50%';
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!this.touchJoystick.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === this.touchJoystick.touchId) {
+          const maxDist = 55;
+          let deltaX = touch.clientX - this.touchJoystick.startX;
+          let deltaY = touch.clientY - this.touchJoystick.startY;
+          const dist = Math.hypot(deltaX, deltaY);
+
+          if (dist > maxDist) {
+            deltaX = (deltaX / dist) * maxDist;
+            deltaY = (deltaY / dist) * maxDist;
+          }
+
+          this.touchJoystick.dx = deltaX / maxDist;
+          this.touchJoystick.dy = deltaY / maxDist;
+
+          joyThumb.style.left = `calc(50% + ${deltaX}px)`;
+          joyThumb.style.top = `calc(50% + ${deltaY}px)`;
+          break;
+        }
+      }
+    }, { passive: false });
+
+    const endJoystick = (e) => {
+      if (!this.touchJoystick.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === this.touchJoystick.touchId) {
+          this.touchJoystick.active = false;
+          this.touchJoystick.touchId = null;
+          this.touchJoystick.dx = 0;
+          this.touchJoystick.dy = 0;
+          joyBase.style.display = 'none';
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('touchend', endJoystick);
+    window.addEventListener('touchcancel', endJoystick);
+
+    // Touch Action Buttons
+    const btnFire = document.getElementById('btn-touch-fire');
+    const btnShield = document.getElementById('btn-touch-shield');
+    const btnBomb = document.getElementById('btn-touch-bomb');
+
+    const handleFireStart = (e) => {
+      e.preventDefault();
+      this.touchFiring = true;
+      btnFire.classList.add('pressed');
+      this.player.fireCooldown = 0;
+    };
+    const handleFireEnd = (e) => {
+      e.preventDefault();
+      this.touchFiring = false;
+      btnFire.classList.remove('pressed');
+    };
+    btnFire.addEventListener('touchstart', handleFireStart, { passive: false });
+    btnFire.addEventListener('touchend', handleFireEnd);
+    btnFire.addEventListener('touchcancel', handleFireEnd);
+
+    const handleShieldStart = (e) => {
+      e.preventDefault();
+      this.touchShielding = true;
+      btnShield.classList.add('pressed');
+    };
+    const handleShieldEnd = (e) => {
+      e.preventDefault();
+      this.touchShielding = false;
+      btnShield.classList.remove('pressed');
+    };
+    btnShield.addEventListener('touchstart', handleShieldStart, { passive: false });
+    btnShield.addEventListener('touchend', handleShieldEnd);
+    btnShield.addEventListener('touchcancel', handleShieldEnd);
+
+    btnBomb.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      btnBomb.classList.add('pressed');
+      this.triggerEmp();
+    }, { passive: false });
+    btnBomb.addEventListener('touchend', () => btnBomb.classList.remove('pressed'));
+
+    // Top & Quick Control UI Buttons
+    document.getElementById('btn-start-camera').onclick = () => this.startMission('gesture');
+    document.getElementById('btn-start-touch').onclick = () => this.startMission('touch');
+    document.getElementById('btn-start-keyboard').onclick = () => this.startMission('keyboard');
+
     document.getElementById('btn-audio').onclick = () => this.toggleAudio();
-    document.getElementById('btn-input-mode').onclick = () => this.toggleInputMode();
+    document.getElementById('btn-input-mode').onclick = () => this.cycleInputMode();
+    document.getElementById('btn-settings-open').onclick = () => this.openSettings();
+    document.getElementById('btn-settings-save').onclick = () => this.closeSettings();
+    document.getElementById('btn-fullscreen').onclick = () => this.toggleFullscreen();
     document.getElementById('btn-pause').onclick = () => this.togglePause();
     document.getElementById('btn-resume').onclick = () => this.togglePause();
+    document.getElementById('btn-pause-settings').onclick = () => {
+      document.getElementById('pause-modal').style.display = 'none';
+      this.openSettings();
+    };
+    document.getElementById('btn-pause-restart').onclick = () => {
+      document.getElementById('pause-modal').style.display = 'none';
+      this.restartGame();
+    };
     document.getElementById('btn-restart').onclick = () => this.restartGame();
+
+    // PIP Camera Tools
+    document.getElementById('btn-camera-flip').onclick = () => this.flipCamera();
+    document.getElementById('btn-pip-toggle').onclick = () => {
+      document.getElementById('pip-container').classList.toggle('minimized');
+    };
+
+    // Settings Inputs
+    document.getElementById('setting-control-mode').onchange = (e) => this.setControlMode(e.target.value);
+    document.getElementById('setting-camera-facing').onchange = (e) => {
+      this.cameraFacing = e.target.value;
+      if (this.cameraStream) this.startCamera();
+    };
+    document.getElementById('setting-sensitivity').oninput = (e) => {
+      this.sensitivity = parseFloat(e.target.value);
+      document.getElementById('sensitivity-value').textContent = `${this.sensitivity.toFixed(1)}x`;
+    };
+    document.getElementById('setting-graphics').onchange = (e) => {
+      this.graphicsQuality = e.target.value;
+      this.initStars();
+    };
+
+    // Tab visibility handling (battery saver & pause)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.running && !this.paused) {
+        this.togglePause();
+      }
+    });
   }
 
-  async startWithCamera() {
+  async startMission(chosenMode) {
     this.audio.init();
     document.getElementById('start-modal').style.display = 'none';
-    this.useWebcam = true;
-    document.getElementById('pip-container').classList.remove('hidden');
-    document.getElementById('btn-input-mode').textContent = '✋';
-    document.getElementById('pip-label').textContent = 'CAMERA STARTING...';
+    this.setControlMode(chosenMode);
 
-    try {
-      const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-      });
+    if (chosenMode === 'gesture' || chosenMode === 'hybrid') {
+      await this.startCamera();
+    }
+    this.startGameLoop();
+  }
 
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 0,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
+  async startCamera() {
+    const pip = document.getElementById('pip-container');
+    pip.classList.remove('hidden');
+    document.getElementById('pip-title').textContent = 'INITIALIZING...';
 
-      hands.onResults((results) => this.onHandResults(results));
-
-      const camera = new Camera(this.videoElement, {
-        onFrame: async () => {
-          await hands.send({ image: this.videoElement });
-        },
-        width: 640,
-        height: 480
-      });
-
-      await camera.start();
-      document.getElementById('pip-label').textContent = 'AI TRACKING ACTIVE';
-    } catch (err) {
-      console.warn('Webcam permission denied or unavailable, falling back to keyboard:', err);
-      alert('Webcam access was not granted or not supported. Falling back to Keyboard/Mouse controls!');
-      this.useWebcam = false;
-      document.getElementById('btn-input-mode').textContent = '⌨️';
-      document.getElementById('pip-container').classList.add('hidden');
+    // Stop existing camera track if running
+    if (this.cameraStream) {
+      this.cameraStream.getTracks().forEach(t => t.stop());
+      this.cameraStream = null;
     }
 
-    this.startGameLoop();
+    try {
+      if (!this.hands) {
+        this.hands = new Hands({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        this.hands.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 0,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+        this.hands.onResults((results) => this.onHandResults(results));
+      }
+
+      // Request device camera (front or back)
+      const constraints = {
+        video: {
+          facingMode: { ideal: this.cameraFacing },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        },
+        audio: false
+      };
+
+      this.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.videoElement.srcObject = this.cameraStream;
+      await this.videoElement.play();
+
+      document.getElementById('pip-title').textContent = 'AI ACTIVE';
+      this.processVideoFrames();
+    } catch (err) {
+      console.warn('Camera failed to start:', err);
+      alert('Camera access denied or unavailable on this device. Switching to Touch / Keyboard controls.');
+      pip.classList.add('hidden');
+      this.setControlMode('touch');
+    }
   }
 
-  startWithKeyboard() {
-    this.audio.init();
-    document.getElementById('start-modal').style.display = 'none';
-    this.useWebcam = false;
-    document.getElementById('btn-input-mode').textContent = '⌨️';
-    document.getElementById('pip-container').classList.add('hidden');
-    document.getElementById('gesture-text').textContent = 'KEYBOARD ACTIVE';
-    this.startGameLoop();
+  processVideoFrames() {
+    if (!this.cameraStream || !this.videoElement) return;
+
+    const frameCallback = async () => {
+      if (!this.cameraStream) return;
+      if (!this.paused && !this.isProcessingFrame && this.videoElement.readyState >= 2) {
+        this.isProcessingFrame = true;
+        try {
+          await this.hands.send({ image: this.videoElement });
+        } catch (_) {}
+        this.isProcessingFrame = false;
+      }
+      if ('requestVideoFrameCallback' in this.videoElement) {
+        this.videoElement.requestVideoFrameCallback(frameCallback);
+      } else {
+        requestAnimationFrame(frameCallback);
+      }
+    };
+
+    if ('requestVideoFrameCallback' in this.videoElement) {
+      this.videoElement.requestVideoFrameCallback(frameCallback);
+    } else {
+      requestAnimationFrame(frameCallback);
+    }
+  }
+
+  async flipCamera() {
+    this.cameraFacing = (this.cameraFacing === 'user') ? 'environment' : 'user';
+    document.getElementById('setting-camera-facing').value = this.cameraFacing;
+    await this.startCamera();
+  }
+
+  setControlMode(mode) {
+    this.controlMode = mode;
+    document.getElementById('setting-control-mode').value = mode;
+
+    const btnMode = document.getElementById('btn-input-mode');
+    const touchLayer = document.getElementById('touch-controls-layer');
+    const pip = document.getElementById('pip-container');
+    const gBadge = document.getElementById('gesture-badge');
+    const gText = document.getElementById('gesture-text');
+    const gIcon = document.getElementById('gesture-icon');
+
+    if (mode === 'gesture') {
+      btnMode.textContent = '✋';
+      touchLayer.classList.remove('active');
+      pip.classList.remove('hidden');
+      gIcon.textContent = '✋';
+      gText.textContent = 'AI GESTURE';
+    } else if (mode === 'touch') {
+      btnMode.textContent = '📱';
+      touchLayer.classList.add('active');
+      pip.classList.add('hidden');
+      gIcon.textContent = '📱';
+      gText.textContent = 'TOUCH MODE';
+    } else if (mode === 'hybrid') {
+      btnMode.textContent = '⚡';
+      touchLayer.classList.add('active');
+      pip.classList.remove('hidden');
+      gIcon.textContent = '⚡';
+      gText.textContent = 'HYBRID MODE';
+    } else {
+      btnMode.textContent = '⌨️';
+      touchLayer.classList.remove('active');
+      pip.classList.add('hidden');
+      gIcon.textContent = '⌨️';
+      gText.textContent = 'KEYBOARD ACTIVE';
+    }
+  }
+
+  cycleInputMode() {
+    const modes = ['gesture', 'touch', 'hybrid', 'keyboard'];
+    const nextIdx = (modes.indexOf(this.controlMode) + 1) % modes.length;
+    const newMode = modes[nextIdx];
+    this.setControlMode(newMode);
+    if ((newMode === 'gesture' || newMode === 'hybrid') && !this.cameraStream) {
+      this.startCamera();
+    }
   }
 
   onHandResults(results) {
@@ -877,9 +1447,8 @@ class SpaceShooterGame {
       // Draw skeleton on PIP
       ctx.strokeStyle = '#00f0ff';
       ctx.fillStyle = '#ffe600';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.8;
 
-      // Draw hand connections
       const connections = [
         [0,1],[1,2],[2,3],[3,4],
         [0,5],[5,6],[6,7],[7,8],
@@ -897,11 +1466,11 @@ class SpaceShooterGame {
 
       lm.forEach((pt) => {
         ctx.beginPath();
-        ctx.arc(pt.x * this.pipCanvas.width, pt.y * this.pipCanvas.height, 2.5, 0, Math.PI * 2);
+        ctx.arc(pt.x * this.pipCanvas.width, pt.y * this.pipCanvas.height, 2, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // Palm centroid
+      // Palm Centroid
       const palmIndices = [0, 5, 9, 13, 17];
       let px = 0, py = 0;
       palmIndices.forEach(idx => {
@@ -911,18 +1480,20 @@ class SpaceShooterGame {
       px /= palmIndices.length;
       py /= palmIndices.length;
 
-      // Mirror horizontally
-      px = 1.0 - px;
+      // Mirror horizontally for selfie front camera
+      if (this.cameraFacing === 'user') {
+        px = 1.0 - px;
+      }
 
       // Biomechanical Scale Normalization
       const wrist = lm[0];
       const middleKnuckle = lm[9];
       const palmScale = Math.max(0.001, Math.hypot(middleKnuckle.x - wrist.x, middleKnuckle.y - wrist.y));
 
-      // Pinch distance (thumb tip 4 to index tip 8)
+      // Pinch metric
       const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / palmScale;
 
-      // Finger curl (distance from tips 8, 12, 16, 20 to wrist)
+      // Finger curl metric
       const tips = [8, 12, 16, 20];
       let curlSum = 0;
       tips.forEach(t => {
@@ -930,28 +1501,30 @@ class SpaceShooterGame {
       });
       const avgCurl = curlSum / 4.0;
 
-      // Classify Gesture
+      // Classify Hand Gesture
       if (pinchDist < 0.38 && avgCurl > 0.70) {
         this.gesture = 'PINCH';
       } else if (avgCurl < 0.90) {
         this.gesture = 'CLOSED_FIST';
-      } else if (avgCurl >= 1.30) {
+      } else if (avgCurl >= 1.25) {
         this.gesture = 'OPEN_PALM';
       } else {
         this.gesture = 'IDLE';
       }
 
-      // One Euro Filter + 2.5x Sensitivity Active Zone
+      // One Euro Filter + Dynamic Sensitivity Active Zone
       const now = performance.now();
       const filteredX = this.filterX.filter(px, now);
       const filteredY = this.filterY.filter(py, now);
 
-      // Active zone: middle 40% maps to full canvas
-      const targetNormX = Math.max(0, Math.min(1, 0.5 + (filteredX - 0.5) * 2.5));
-      const targetNormY = Math.max(0, Math.min(1, 0.5 + (filteredY - 0.5) * 2.0));
+      const targetNormX = Math.max(0, Math.min(1, 0.5 + (filteredX - 0.5) * this.sensitivity));
+      const targetNormY = Math.max(0, Math.min(1, 0.5 + (filteredY - 0.5) * (this.sensitivity * 0.85)));
 
-      this.targetShipX = targetNormX * this.width;
-      this.targetShipY = targetNormY * this.height;
+      // If not currently using touch joystick, hand steers ship
+      if (!this.touchJoystick.active) {
+        this.targetShipX = targetNormX * this.width;
+        this.targetShipY = targetNormY * this.height;
+      }
 
       // Update HUD badge
       const badge = document.getElementById('gesture-badge');
@@ -981,7 +1554,7 @@ class SpaceShooterGame {
       }
     } else {
       this.handDetected = false;
-      document.getElementById('pip-label').textContent = 'SEARCHING HAND...';
+      document.getElementById('pip-title').textContent = 'SEARCHING HAND';
     }
   }
 
@@ -1007,18 +1580,22 @@ class SpaceShooterGame {
     document.getElementById('btn-audio').textContent = isMuted ? '🔇' : '🔊';
   }
 
-  toggleInputMode() {
-    this.useWebcam = !this.useWebcam;
-    const btn = document.getElementById('btn-input-mode');
-    const pip = document.getElementById('pip-container');
-    if (this.useWebcam) {
-      btn.textContent = '✋';
-      pip.classList.remove('hidden');
+  openSettings() {
+    this.paused = true;
+    document.getElementById('settings-modal').style.display = 'flex';
+  }
+
+  closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+    this.paused = false;
+    this.lastFrameTime = performance.now();
+  }
+
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
     } else {
-      btn.textContent = '⌨️';
-      pip.classList.add('hidden');
-      document.getElementById('gesture-text').textContent = 'KEYBOARD ACTIVE';
-      document.getElementById('gesture-icon').textContent = '⌨️';
+      if (document.exitFullscreen) document.exitFullscreen();
     }
   }
 
@@ -1027,7 +1604,7 @@ class SpaceShooterGame {
     const modal = document.getElementById('pause-modal');
     if (this.paused) {
       document.getElementById('pause-title').textContent = 'MISSION PAUSED';
-      document.getElementById('pause-message').textContent = 'Press P or click Resume to continue';
+      document.getElementById('pause-message').textContent = 'Game paused. Resume when ready!';
       modal.style.display = 'flex';
     } else {
       modal.style.display = 'none';
@@ -1039,25 +1616,22 @@ class SpaceShooterGame {
     if (this.bombs <= 0) return;
     this.bombs--;
     this.audio.playEmp();
-    this.screenShake = 24;
+    this.screenShake = 22;
 
-    // Destroy all enemy bullets
     this.enemyBullets.forEach(b => {
       this.spawnExplosionParticles(b.x, b.y, '#00f0ff', 6);
     });
     this.enemyBullets = [];
 
-    // Heavy damage to all enemies
     this.enemies.forEach(e => {
       e.hp -= 80;
-      this.spawnExplosionParticles(e.x, e.y, '#ff0077', 12);
+      this.spawnExplosionParticles(e.x, e.y, '#ff0077', 10);
     });
 
     if (this.boss) {
       this.boss.hp -= 150;
-      this.spawnExplosionParticles(this.boss.x, this.boss.y, '#00f0ff', 25);
+      this.spawnExplosionParticles(this.boss.x, this.boss.y, '#00f0ff', 24);
     }
-
     this.updateHUD();
   }
 
@@ -1067,30 +1641,27 @@ class SpaceShooterGame {
       this.audio.playExplosion(true);
       this.boss = {
         x: this.width / 2,
-        y: 120,
-        hp: 400 + this.wave * 100,
-        maxHp: 400 + this.wave * 100,
-        width: 140,
-        height: 80,
+        y: Math.max(90, this.height * 0.16),
+        hp: 400 + this.wave * 120,
+        maxHp: 400 + this.wave * 120,
+        width: Math.min(150, this.width * 0.35),
+        height: 75,
         phase: 1,
         angle: 0,
-        shootCooldown: 0,
-        beamActive: false,
-        beamCharge: 0
+        shootCooldown: 0
       };
       this.enemies = [];
     } else {
-      const count = 4 + this.wave * 2;
+      const count = Math.min(16, 4 + this.wave * 2);
       for (let i = 0; i < count; i++) {
         const type = ['scout', 'viper', 'interceptor', 'gunner'][Math.floor(Math.random() * Math.min(4, 1 + this.wave))];
         this.enemies.push({
-          x: 60 + Math.random() * (this.width - 120),
+          x: 40 + Math.random() * (this.width - 80),
           y: -40 - i * 65,
           type: type,
           hp: type === 'gunner' ? 35 : (type === 'interceptor' ? 25 : 15),
           vx: (Math.random() - 0.5) * 2,
-          vy: 1.5 + Math.random() * 2,
-          baseX: 0,
+          vy: 1.6 + Math.random() * 2,
           shootCooldown: Math.random() * 120
         });
       }
@@ -1098,17 +1669,18 @@ class SpaceShooterGame {
     document.getElementById('wave-display').textContent = `WAVE ${this.wave < 10 ? '0' + this.wave : this.wave}`;
   }
 
-  spawnExplosionParticles(x, y, color, count = 15) {
+  spawnExplosionParticles(x, y, color, count = 12) {
+    if (this.graphicsQuality === 'battery') count = Math.floor(count * 0.5);
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 1.5 + Math.random() * 5;
+      const speed = 1.5 + Math.random() * 4.5;
       this.particles.push({
         x: x,
         y: y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         life: 1.0,
-        decay: 0.02 + Math.random() * 0.03,
+        decay: 0.025 + Math.random() * 0.035,
         color: color,
         size: 2 + Math.random() * 3
       });
@@ -1117,89 +1689,81 @@ class SpaceShooterGame {
 
   gameLoop(currentTime) {
     if (!this.running) return;
-
-    const dt = Math.min(0.1, (currentTime - this.lastFrameTime) / 1000);
+    const dt = Math.min(0.08, (currentTime - this.lastFrameTime) / 1000);
     this.lastFrameTime = currentTime;
 
     if (!this.paused) {
       this.update(dt);
     }
     this.render();
-
     requestAnimationFrame((t) => this.gameLoop(t));
   }
 
   update(dt) {
-    // Check Auto-Pause on lost hand (> 1.2s)
-    if (this.useWebcam) {
-      if (!this.handDetected && performance.now() - this.lastHandSeen > 1200) {
-        this.paused = true;
-        document.getElementById('pause-title').textContent = 'HAND LOST';
-        document.getElementById('pause-message').textContent = 'Please show your hand to the webcam to continue';
-        document.getElementById('pause-modal').style.display = 'flex';
-      }
+    // 1. Touch Joystick Movement (if active)
+    if (this.touchJoystick.active) {
+      const joySpeed = 520 * dt;
+      this.targetShipX += this.touchJoystick.dx * joySpeed;
+      this.targetShipY += this.touchJoystick.dy * joySpeed;
     }
 
-    // Keyboard controls update
-    if (!this.useWebcam) {
-      const moveSpeed = 460 * dt;
+    // 2. Keyboard Movement
+    if (this.controlMode === 'keyboard' || this.controlMode === 'hybrid') {
+      const moveSpeed = 480 * dt;
       if (this.keys['arrowleft'] || this.keys['a']) this.targetShipX -= moveSpeed;
       if (this.keys['arrowright'] || this.keys['d']) this.targetShipX += moveSpeed;
       if (this.keys['arrowup'] || this.keys['w']) this.targetShipY -= moveSpeed;
       if (this.keys['arrowdown'] || this.keys['s']) this.targetShipY += moveSpeed;
-
-      this.player.shieldActive = !!this.keys['s'];
-      if (this.keys[' ']) {
-        this.gesture = 'OPEN_PALM';
-      } else if (this.keys['s']) {
-        this.gesture = 'CLOSED_FIST';
-      } else {
-        this.gesture = 'IDLE';
-      }
-    } else {
-      this.player.shieldActive = (this.gesture === 'CLOSED_FIST');
-      if (this.gesture === 'PINCH' && this.bombs > 0 && Math.random() < 0.1) {
-        this.triggerEmp();
-      }
     }
 
-    // Clamp target
-    this.targetShipX = Math.max(30, Math.min(this.width - 30, this.targetShipX));
-    this.targetShipY = Math.max(80, Math.min(this.height - 40, this.targetShipY));
+    // Shield Activation
+    const isGestureShield = (this.controlMode === 'gesture' || this.controlMode === 'hybrid') && (this.gesture === 'CLOSED_FIST');
+    const isTouchShield = this.touchShielding;
+    const isKeyShield = !!this.keys['s'];
+    this.player.shieldActive = (isGestureShield || isTouchShield || isKeyShield);
 
-    // Smooth exponential pursuit (FOLLOW_SPEED = 18.0)
+    // Shield Energy Depletion & Regeneration
+    if (this.player.shieldActive && this.player.shieldEnergy > 0) {
+      this.player.shieldEnergy = Math.max(0, this.player.shieldEnergy - 34 * dt);
+      if (this.player.shieldEnergy === 0) this.player.shieldActive = false;
+    } else {
+      this.player.shieldEnergy = Math.min(this.player.shieldMax, this.player.shieldEnergy + 16 * dt);
+    }
+
+    // Clamp Ship Target
+    this.targetShipX = Math.max(26, Math.min(this.width - 26, this.targetShipX));
+    this.targetShipY = Math.max(70, Math.min(this.height - 35, this.targetShipY));
+
+    // Smooth pursuit
     const followLerp = 1.0 - Math.exp(-18.0 * dt);
     this.player.x += (this.targetShipX - this.player.x) * followLerp;
     this.player.y += (this.targetShipY - this.player.y) * followLerp;
-
-    // Shield Energy handling
-    if (this.player.shieldActive && this.player.shieldEnergy > 0) {
-      this.player.shieldEnergy = Math.max(0, this.player.shieldEnergy - 35 * dt);
-      if (this.player.shieldEnergy === 0) this.player.shieldActive = false;
-    } else {
-      this.player.shieldEnergy = Math.min(this.player.shieldMax, this.player.shieldEnergy + 15 * dt);
-    }
 
     // Weapon Timers
     if (this.player.tripleShotTimer > 0) this.player.tripleShotTimer -= dt;
     if (this.player.rapidFireTimer > 0) this.player.rapidFireTimer -= dt;
     if (this.player.invulnerableTimer > 0) this.player.invulnerableTimer -= dt;
 
-    // Auto-fire on OPEN_PALM
+    // Firing Logic (Gesture OPEN_PALM, Touch FIRE button, or Space key)
     this.player.fireCooldown -= dt;
-    const fireInterval = this.player.rapidFireTimer > 0 ? 0.08 : 0.16;
+    const isFiring = (
+      ((this.controlMode === 'gesture' || this.controlMode === 'hybrid') && this.gesture === 'OPEN_PALM') ||
+      this.touchFiring ||
+      !!this.keys[' ']
+    );
 
-    if (this.gesture === 'OPEN_PALM' && this.player.fireCooldown <= 0) {
+    const fireInterval = this.player.rapidFireTimer > 0 ? 0.08 : 0.16;
+    if (isFiring && this.player.fireCooldown <= 0) {
       this.player.fireCooldown = fireInterval;
       this.audio.playLaser();
 
       if (this.player.tripleShotTimer > 0) {
-        this.bullets.push({ x: this.player.x - 14, y: this.player.y - 20, vx: -2, vy: -12 });
-        this.bullets.push({ x: this.player.x, y: this.player.y - 28, vx: 0, vy: -14 });
-        this.bullets.push({ x: this.player.x + 14, y: this.player.y - 20, vx: 2, vy: -12 });
+        this.bullets.push({ x: this.player.x - 14, y: this.player.y - 18, vx: -2, vy: -13 });
+        this.bullets.push({ x: this.player.x, y: this.player.y - 26, vx: 0, vy: -15 });
+        this.bullets.push({ x: this.player.x + 14, y: this.player.y - 18, vx: 2, vy: -13 });
       } else {
-        this.bullets.push({ x: this.player.x - 12, y: this.player.y - 24, vx: 0, vy: -14 });
-        this.bullets.push({ x: this.player.x + 12, y: this.player.y - 24, vx: 0, vy: -14 });
+        this.bullets.push({ x: this.player.x - 12, y: this.player.y - 22, vx: 0, vy: -15 });
+        this.bullets.push({ x: this.player.x + 12, y: this.player.y - 22, vx: 0, vy: -15 });
       }
     }
 
@@ -1208,9 +1772,7 @@ class SpaceShooterGame {
       const b = this.bullets[i];
       b.x += b.vx || 0;
       b.y += b.vy;
-      if (b.y < -30) {
-        this.bullets.splice(i, 1);
-      }
+      if (b.y < -30) this.bullets.splice(i, 1);
     }
 
     // Update Enemy Bullets
@@ -1219,12 +1781,9 @@ class SpaceShooterGame {
       eb.x += eb.vx;
       eb.y += eb.vy;
 
-      // Check hit on player
-      const dist = Math.hypot(eb.x - this.player.x, eb.y - this.player.y);
-      if (dist < this.player.radius + 6) {
+      if (Math.hypot(eb.x - this.player.x, eb.y - this.player.y) < this.player.radius + 6) {
         this.enemyBullets.splice(i, 1);
-        this.spawnExplosionParticles(eb.x, eb.y, '#00f0ff', 8);
-
+        this.spawnExplosionParticles(eb.x, eb.y, '#00f0ff', 6);
         if (this.player.shieldActive) {
           this.player.shieldEnergy = Math.max(0, this.player.shieldEnergy - 12);
         } else if (this.player.invulnerableTimer <= 0) {
@@ -1244,12 +1803,11 @@ class SpaceShooterGame {
       e.y += e.vy;
 
       if (e.type === 'viper') {
-        e.x += Math.sin(e.y * 0.05) * 4;
+        e.x += Math.sin(e.y * 0.05) * 3.5;
       } else if (e.type === 'interceptor') {
         e.x += (this.player.x - e.x) * 0.02;
       }
 
-      // Gunner Shooting
       if (e.type === 'gunner') {
         e.shootCooldown--;
         if (e.shootCooldown <= 0) {
@@ -1258,14 +1816,14 @@ class SpaceShooterGame {
           const angle = Math.atan2(this.player.y - e.y, this.player.x - e.x);
           this.enemyBullets.push({
             x: e.x,
-            y: e.y + 15,
+            y: e.y + 14,
             vx: Math.cos(angle) * 5,
             vy: Math.sin(angle) * 5
           });
         }
       }
 
-      // Check bullet collision with enemies
+      // Check player bullets
       for (let j = this.bullets.length - 1; j >= 0; j--) {
         const b = this.bullets[j];
         if (Math.hypot(b.x - e.x, b.y - e.y) < 22) {
@@ -1275,11 +1833,10 @@ class SpaceShooterGame {
 
           if (e.hp <= 0) {
             this.audio.playExplosion(false);
-            this.spawnExplosionParticles(e.x, e.y, '#ff0077', 16);
+            this.spawnExplosionParticles(e.x, e.y, '#ff0077', 14);
             this.enemies.splice(i, 1);
             this.addScore(150);
 
-            // Chance to spawn powerup
             if (Math.random() < 0.22) {
               const types = ['triple', 'rapid', 'shield', 'bomb'];
               this.powerups.push({
@@ -1294,11 +1851,11 @@ class SpaceShooterGame {
         }
       }
 
-      // Ramming into player
-      if (Math.hypot(e.x - this.player.x, e.y - this.player.y) < 32) {
+      // Ship collision
+      if (Math.hypot(e.x - this.player.x, e.y - this.player.y) < 30) {
         this.enemies.splice(i, 1);
         this.audio.playExplosion(false);
-        this.spawnExplosionParticles(e.x, e.y, '#ff0077', 20);
+        this.spawnExplosionParticles(e.x, e.y, '#ff0077', 16);
         if (this.player.shieldActive) {
           this.player.shieldEnergy = Math.max(0, this.player.shieldEnergy - 25);
         } else if (this.player.invulnerableTimer <= 0) {
@@ -1307,23 +1864,20 @@ class SpaceShooterGame {
         continue;
       }
 
-      if (e.y > this.height + 60) {
-        this.enemies.splice(i, 1);
-      }
+      if (e.y > this.height + 60) this.enemies.splice(i, 1);
     }
 
-    // Update Dreadnought Boss
+    // Update Boss
     if (this.boss) {
       this.boss.angle += 0.02;
-      this.boss.x = this.width / 2 + Math.sin(this.boss.angle) * 180;
+      const bossRadius = Math.min(180, this.width * 0.35);
+      this.boss.x = this.width / 2 + Math.sin(this.boss.angle) * bossRadius;
 
       this.boss.shootCooldown--;
       if (this.boss.shootCooldown <= 0) {
-        this.boss.shootCooldown = 28;
+        this.boss.shootCooldown = 30;
         this.audio.playEnemyLaser();
-
-        // 3-way spiral barrage
-        for (let a = -0.4; a <= 0.4; a += 0.4) {
+        for (let a = -0.35; a <= 0.35; a += 0.35) {
           this.enemyBullets.push({
             x: this.boss.x,
             y: this.boss.y + 35,
@@ -1333,17 +1887,16 @@ class SpaceShooterGame {
         }
       }
 
-      // Check player bullets against boss
       for (let j = this.bullets.length - 1; j >= 0; j--) {
         const b = this.bullets[j];
-        if (Math.abs(b.x - this.boss.x) < 70 && Math.abs(b.y - this.boss.y) < 40) {
+        if (Math.abs(b.x - this.boss.x) < this.boss.width * 0.5 && Math.abs(b.y - this.boss.y) < 38) {
           this.bullets.splice(j, 1);
           this.boss.hp -= 12;
           this.spawnExplosionParticles(b.x, b.y, '#00f0ff', 4);
 
           if (this.boss.hp <= 0) {
             this.audio.playExplosion(true);
-            this.spawnExplosionParticles(this.boss.x, this.boss.y, '#ffe600', 45);
+            this.spawnExplosionParticles(this.boss.x, this.boss.y, '#ffe600', 40);
             this.addScore(2500);
             this.boss = null;
             this.wave++;
@@ -1354,18 +1907,17 @@ class SpaceShooterGame {
       }
     }
 
-    // Check wave completion
     if (!this.boss && this.enemies.length === 0) {
       this.wave++;
       this.spawnWaveEnemies();
     }
 
-    // Update Powerups
+    // Powerups
     for (let i = this.powerups.length - 1; i >= 0; i--) {
       const p = this.powerups[i];
       p.y += p.vy;
 
-      if (Math.hypot(p.x - this.player.x, p.y - this.player.y) < 32) {
+      if (Math.hypot(p.x - this.player.x, p.y - this.player.y) < 30) {
         this.powerups.splice(i, 1);
         this.audio.playPowerup();
         this.addScore(100);
@@ -1376,11 +1928,10 @@ class SpaceShooterGame {
         if (p.type === 'bomb') this.bombs = Math.min(5, this.bombs + 1);
         continue;
       }
-
       if (p.y > this.height + 40) this.powerups.splice(i, 1);
     }
 
-    // Update Particles
+    // Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const pt = this.particles[i];
       pt.x += pt.vx;
@@ -1389,12 +1940,10 @@ class SpaceShooterGame {
       if (pt.life <= 0) this.particles.splice(i, 1);
     }
 
-    // Combo decay
+    // Combo timer
     if (this.comboTimer > 0) {
       this.comboTimer -= dt;
-      if (this.comboTimer <= 0) {
-        this.combo = 1.0;
-      }
+      if (this.comboTimer <= 0) this.combo = 1.0;
     }
 
     this.updateHUD();
@@ -1402,13 +1951,10 @@ class SpaceShooterGame {
 
   playerHit() {
     this.audio.playExplosion(true);
-    this.screenShake = 18;
+    this.screenShake = 16;
     this.lives--;
     this.player.invulnerableTimer = 2.0;
-
-    if (this.lives <= 0) {
-      this.gameOver();
-    }
+    if (this.lives <= 0) this.gameOver();
   }
 
   addScore(pts) {
@@ -1438,10 +1984,9 @@ class SpaceShooterGame {
       const sy = (Math.random() - 0.5) * this.screenShake;
       ctx.translate(sx, sy);
       this.screenShake *= 0.9;
-      if (this.screenShake < 0.5) this.screenShake = 0;
+      if (this.screenShake < 0.4) this.screenShake = 0;
     }
 
-    // Clear Canvas
     ctx.fillStyle = '#060814';
     ctx.fillRect(0, 0, this.width, this.height);
 
@@ -1453,10 +1998,10 @@ class SpaceShooterGame {
         s.x = Math.random() * this.width;
       }
       ctx.fillStyle = s.color;
-      ctx.fillRect(s.x, s.y, s.size, s.size * (s.speed > 2.0 ? 2.5 : 1.0));
+      ctx.fillRect(s.x, s.y, s.size, s.size * (s.speed > 2.0 ? 2.2 : 1.0));
     });
 
-    // Draw Particles
+    // Particles
     this.particles.forEach(pt => {
       ctx.fillStyle = pt.color;
       ctx.globalAlpha = Math.max(0, pt.life);
@@ -1466,16 +2011,17 @@ class SpaceShooterGame {
     });
     ctx.globalAlpha = 1.0;
 
-    // Draw Powerups
+    // Powerups
     this.powerups.forEach(p => {
       ctx.save();
       ctx.translate(p.x, p.y);
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#00f0ff';
+      if (this.graphicsQuality !== 'battery') {
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#00f0ff';
+      }
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 2;
       ctx.strokeRect(-12, -12, 24, 24);
-
       ctx.fillStyle = '#ffe600';
       ctx.font = '10px Orbitron';
       ctx.textAlign = 'center';
@@ -1483,37 +2029,42 @@ class SpaceShooterGame {
       ctx.restore();
     });
 
-    // Draw Player Bullets
+    // Bullets
     this.bullets.forEach(b => {
       ctx.save();
       ctx.fillStyle = '#00f0ff';
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = '#00f0ff';
+      if (this.graphicsQuality !== 'battery') {
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00f0ff';
+      }
       ctx.fillRect(b.x - 2.5, b.y, 5, 16);
       ctx.restore();
     });
 
-    // Draw Enemy Bullets
     this.enemyBullets.forEach(eb => {
       ctx.save();
       ctx.fillStyle = '#ff0055';
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#ff0055';
+      if (this.graphicsQuality !== 'battery') {
+        ctx.shadowBlur = 9;
+        ctx.shadowColor = '#ff0055';
+      }
       ctx.beginPath();
       ctx.arc(eb.x, eb.y, 5, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     });
 
-    // Draw Enemies
+    // Enemies
     this.enemies.forEach(e => {
       ctx.save();
       ctx.translate(e.x, e.y);
-      ctx.shadowBlur = 12;
+      if (this.graphicsQuality !== 'battery') {
+        ctx.shadowBlur = 10;
+      }
 
       if (e.type === 'scout') {
         ctx.fillStyle = '#ff2255';
-        ctx.shadowColor = '#ff2255';
+        if (this.graphicsQuality !== 'battery') ctx.shadowColor = '#ff2255';
         ctx.beginPath();
         ctx.moveTo(0, 16);
         ctx.lineTo(-14, -14);
@@ -1522,7 +2073,7 @@ class SpaceShooterGame {
         ctx.fill();
       } else if (e.type === 'viper') {
         ctx.fillStyle = '#00ff88';
-        ctx.shadowColor = '#00ff88';
+        if (this.graphicsQuality !== 'battery') ctx.shadowColor = '#00ff88';
         ctx.beginPath();
         ctx.moveTo(0, 18);
         ctx.lineTo(-16, -6);
@@ -1532,16 +2083,15 @@ class SpaceShooterGame {
         ctx.fill();
       } else if (e.type === 'gunner') {
         ctx.fillStyle = '#ff9900';
-        ctx.shadowColor = '#ff9900';
+        if (this.graphicsQuality !== 'battery') ctx.shadowColor = '#ff9900';
         ctx.beginPath();
         ctx.rect(-18, -14, 36, 28);
         ctx.fill();
         ctx.fillStyle = '#ffe600';
         ctx.fillRect(-4, 14, 8, 8);
       } else {
-        // Interceptor
         ctx.fillStyle = '#9d00ff';
-        ctx.shadowColor = '#9d00ff';
+        if (this.graphicsQuality !== 'battery') ctx.shadowColor = '#9d00ff';
         ctx.beginPath();
         ctx.moveTo(0, 16);
         ctx.lineTo(-18, -12);
@@ -1553,46 +2103,45 @@ class SpaceShooterGame {
       ctx.restore();
     });
 
-    // Draw Dreadnought Boss
+    // Boss
     if (this.boss) {
       ctx.save();
       ctx.translate(this.boss.x, this.boss.y);
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#ff0055';
+      if (this.graphicsQuality !== 'battery') {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff0055';
+      }
 
-      // Hull
       ctx.fillStyle = '#1c1f38';
       ctx.strokeStyle = '#ff0055';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(0, 45);
-      ctx.lineTo(-70, -15);
-      ctx.lineTo(-50, -40);
-      ctx.lineTo(50, -40);
-      ctx.lineTo(70, -15);
+      ctx.moveTo(0, 42);
+      ctx.lineTo(-this.boss.width * 0.5, -15);
+      ctx.lineTo(-this.boss.width * 0.35, -38);
+      ctx.lineTo(this.boss.width * 0.35, -38);
+      ctx.lineTo(this.boss.width * 0.5, -15);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // Core Reactor
       ctx.fillStyle = '#ffe600';
       ctx.beginPath();
-      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
       ctx.fill();
 
-      // Top Health Bar
       ctx.restore();
+
+      // Boss Health Bar
+      const barW = Math.min(300, this.width * 0.65);
       ctx.fillStyle = 'rgba(10, 14, 28, 0.8)';
-      ctx.fillRect(this.width / 2 - 160, 40, 320, 14);
+      ctx.fillRect(this.width / 2 - barW / 2, 45, barW, 12);
       ctx.fillStyle = '#ff0055';
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#ff0055';
       const bossHpPct = Math.max(0, this.boss.hp / this.boss.maxHp);
-      ctx.fillRect(this.width / 2 - 158, 42, 316 * bossHpPct, 10);
-      ctx.shadowBlur = 0;
+      ctx.fillRect(this.width / 2 - barW / 2 + 1, 46, (barW - 2) * bossHpPct, 10);
     }
 
-    // Draw Player Spaceship
+    // Player Spaceship
     ctx.save();
     ctx.translate(this.player.x, this.player.y);
 
@@ -1600,18 +2149,20 @@ class SpaceShooterGame {
       ctx.globalAlpha = 0.4;
     }
 
-    // Engine Exhaust Particles
+    // Thruster Particle Exhaust
     ctx.fillStyle = '#00f0ff';
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00f0ff';
+    if (this.graphicsQuality !== 'battery') {
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = '#00f0ff';
+    }
     ctx.beginPath();
     ctx.moveTo(-10, 18);
-    ctx.lineTo(0, 28 + Math.random() * 12);
+    ctx.lineTo(0, 26 + Math.random() * 10);
     ctx.lineTo(10, 18);
     ctx.closePath();
     ctx.fill();
 
-    // Spaceship Hull
+    // Spaceship Polygon
     ctx.fillStyle = '#0f142a';
     ctx.strokeStyle = '#00f0ff';
     ctx.lineWidth = 2.5;
@@ -1636,8 +2187,10 @@ class SpaceShooterGame {
     if (this.player.shieldActive && this.player.shieldEnergy > 0) {
       ctx.strokeStyle = '#00ff88';
       ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = '#00ff88';
+      if (this.graphicsQuality !== 'battery') {
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = '#00ff88';
+      }
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(0, 0, this.player.radius + 14, 0, Math.PI * 2);
@@ -1661,7 +2214,7 @@ class SpaceShooterGame {
   }
 }
 
-// Instantiate game upon window load
+// Instantiate engine when DOM is ready
 window.addEventListener('load', () => {
   window.gameInstance = new SpaceShooterGame();
 });
